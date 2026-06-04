@@ -1,0 +1,108 @@
+name: apply
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'specs/**'
+      - '**/*.md'
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+  pull-requests: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+  ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+  TOFU_VERSION: "1.9.4"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  apply:
+    name: apply
+    runs-on: ubuntu-latest
+    concurrency:
+      group: tofu-apply
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.ARM_CLIENT_ID }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID }}
+
+      - name: Resolve source PR for merge commit
+        id: pr
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR_NUMBER=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '.[0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "::error::No source PR found for commit ${GITHUB_SHA}. apply.yml requires a merge-commit-to-PR linkage so the plan artifact from plan.yml can be downloaded."
+            exit 1
+          fi
+          PR_HEAD_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
+            --jq '.head.sha')
+          echo "number=$PR_NUMBER"     >> "$GITHUB_OUTPUT"
+          echo "head_sha=$PR_HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved PR #$PR_NUMBER (head $PR_HEAD_SHA) from merge commit ${GITHUB_SHA}."
+
+      - name: Locate plan.yml workflow run for PR head SHA
+        id: planrun
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID=$(gh run list \
+            --workflow=plan.yml \
+            --event=pull_request \
+            --status=success \
+            --limit=50 \
+            --json=databaseId,headSha \
+            --jq "[.[] | select(.headSha == \"${{ steps.pr.outputs.head_sha }}\")] | .[0].databaseId // empty")
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No successful plan.yml run found for PR #${{ steps.pr.outputs.number }} head SHA ${{ steps.pr.outputs.head_sha }}. Re-run plan.yml on that head commit before merging."
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Found plan.yml run $RUN_ID."
+
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ steps.pr.outputs.number }}
+          path: infra/
+          run-id: ${{ steps.planrun.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: tofu init (backend coordinates from repository Variables)
+        run: |
+          tofu init -input=false \
+            -backend-config="subscription_id=${{ vars.TF_STATE_SUBSCRIPTION_ID }}" \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=personal-landing-zone/hub-and-spoke.tfstate"
+
+      - name: tofu apply tfplan
+        run: tofu apply -input=false tfplan
