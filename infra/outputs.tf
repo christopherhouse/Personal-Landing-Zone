@@ -5,6 +5,11 @@
 # server IP to expect in the VPN profile, and which validation-workload
 # names to test against.
 
+output "deployment_app_client_id" {
+  description = "Deployment Entra app client ID. Emitted by bootstrap.ps1; re-surfaced here so `tofu output` is a single place to look up what the apply pipeline authenticates as."
+  value       = var.deployment_app_client_id
+}
+
 output "vpn_gateway_name" {
   description = "Name of the P2S VPN gateway. Used to download the VPN client profile via `az network vnet-gateway vpn-client generate`."
   value       = module.hub.vpn_gateway_name

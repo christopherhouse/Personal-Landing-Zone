@@ -40,11 +40,6 @@ locals {
     spoke  = k
   }]
 
-  address_blocks = concat(
-    local.primary_allocations,
-    [for s in local.workload_subnets : { label = s.label, cidr = s.cidr }],
-  )
-
   # ------------------------------------------------------------------
   # CIDR → (start, end) numeric ranges for overlap math.
   # ------------------------------------------------------------------
@@ -160,31 +155,10 @@ locals {
     if try(s.include_validation_workload, false)
   ]
 
-  # ------------------------------------------------------------------
-  # (f) Derived naming locals (keyed off var.platform.naming_prefix).
-  # ------------------------------------------------------------------
-  prefix = var.platform.naming_prefix
-  region = var.platform.region
-
-  hub_vnet_name           = "vnet-${local.prefix}-hub"
-  hub_reserve_subnet_name = "snet-${local.prefix}-hub-reserve"
-  hub_gateway_pip_name    = "pip-${local.prefix}-vpn"
-  hub_vpn_gateway_name    = "vgw-${local.prefix}-hub"
-  hub_dns_resolver_name   = "dnspr-${local.prefix}-hub"
-  hub_workspace_name      = "log-${local.prefix}-hub"
-
-  spoke_vnet_names = {
-    for k, _ in var.spokes :
-    k => "vnet-${local.prefix}-spoke-${k}"
-  }
-  spoke_workload_subnet_names = {
-    for k, _ in var.spokes :
-    k => "snet-${local.prefix}-spoke-${k}-workload"
-  }
-  spoke_workload_nsg_names = {
-    for k, _ in var.spokes :
-    k => "nsg-${local.prefix}-spoke-${k}"
-  }
+  # Derived naming locals previously declared here are dead — each module
+  # (hub, spoke, validation) builds its own resource names internally from
+  # the naming_prefix it is passed. Adding any global cross-module naming
+  # convention later would re-introduce them here.
 }
 
 # --------------------------------------------------------------------

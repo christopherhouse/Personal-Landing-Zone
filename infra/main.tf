@@ -33,17 +33,15 @@ module "hub" {
     azurerm = azurerm.sub_hub
   }
 
-  subscription_id            = var.subscription_slots["hub"].subscription_id
-  tenant_id                  = var.tenant_id
-  resource_group_name        = var.platform.hub_resource_group_name
-  region                     = var.platform.region
-  address_space              = var.platform.hub_address_space
-  dns_zones                  = var.platform.dns_zones
-  workspace_retention_days   = var.platform.workspace_retention_days
-  naming_prefix              = var.platform.naming_prefix
-  vpn_client_address_pool    = var.platform.vpn_client_address_pool
-  vpn_access_group_object_id = var.vpn_access_group_object_id
-  tags                       = var.platform.tags
+  tenant_id                = var.tenant_id
+  resource_group_name      = var.platform.hub_resource_group_name
+  region                   = var.platform.region
+  address_space            = var.platform.hub_address_space
+  dns_zones                = var.platform.dns_zones
+  workspace_retention_days = var.platform.workspace_retention_days
+  naming_prefix            = var.platform.naming_prefix
+  vpn_client_address_pool  = var.platform.vpn_client_address_pool
+  tags                     = var.platform.tags
 }
 
 # One spoke-module block per slot. The `for_each` filter on var.spokes means

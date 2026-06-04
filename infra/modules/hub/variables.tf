@@ -7,11 +7,6 @@
 #
 # Shape sourced from specs/001-hub-spoke-foundation/data-model.md "Platform entity".
 
-variable "subscription_id" {
-  description = "Hub subscription ID. Surfaced for diagnostics/labels; the provider alias supplies the actual auth context."
-  type        = string
-}
-
 variable "tenant_id" {
   description = "Entra tenant ID. Used in vpn_client_configuration aad_tenant / aad_issuer URLs."
   type        = string
@@ -50,11 +45,6 @@ variable "naming_prefix" {
 
 variable "vpn_client_address_pool" {
   description = "CIDR carved out for P2S VPN client allocations. Pushed into the gateway's vpn_client_configuration.address_space."
-  type        = string
-}
-
-variable "vpn_access_group_object_id" {
-  description = "Object ID of the Entra group whose members may connect to the P2S VPN. Surfaced for downstream RBAC; not consumed inside this module."
   type        = string
 }
 
