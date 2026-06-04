@@ -139,6 +139,8 @@ The Complexity Tracking entry in `plan.md` records this as the single declared e
 - *Per-spoke zone link opt-in* — adds a config knob with no real-world benefit. Rejected for simplicity.
 - *Push DNS server settings on each spoke VNet (`dns_servers = [resolver_ip]`)* — duplicative; VMs in spokes that aren't going through the VPN don't need it (they use Azure-provided 168.63.129.16, which already resolves linked zones via the auto-link path). The VPN profile push is sufficient for the documented user journey.
 
+**Link-conflict handling** (spec.md Edge Cases — "Private DNS zone already linked elsewhere"): no explicit pre-check is implemented. `azurerm_private_dns_zone_virtual_network_link` fails at apply time on conflict, surfacing the conflict as an Azure-side error before the link is created. This is a deliberate "delegate to the Azure API's natural error response" decision rather than an oversight — pre-check logic would have to read the link state across every linked VNet for every zone on every plan, with no actionable improvement over the API's behavior. The pipeline's failure-loud-and-early posture (FR-018, FR-019) makes the Azure-side error visible to the operator in the apply log.
+
 ---
 
 ## R-007: NSG default posture (trust the VPN pool)

@@ -27,10 +27,10 @@ Single OpenTofu root in `infra/`, three configuration files in `config/`, one bo
 
 **Purpose**: Skeleton repository scaffold and tool-version pinning.
 
-- [ ] T001 Create the directory skeleton: `.github/workflows/`, `bootstrap/`, `bootstrap/outputs/`, `infra/`, `infra/modules/hub/`, `infra/modules/spoke/`, `infra/modules/workloads/validation/`, `config/`, `docs/`
-- [ ] T002 [P] Create `.tool-versions` pinning `opentofu 1.9.0` (or current 1.9.x) at the repo root
-- [ ] T003 [P] Update `.gitignore` at the repo root: REMOVE the line that ignores `**/.terraform.lock.hcl` (lock files must be committed per Constitution Principle V); ADD `bootstrap/outputs/*` with an exception for `bootstrap/outputs/.gitkeep`; ADD `infra/tfplan` and `infra/*.tfplan`
-- [ ] T004 [P] Create `.tflint.hcl` at the repo root with `plugin "azurerm"` (source = `terraform-linters/tflint-ruleset-azurerm`, version pinned) enabled and the `terraform_required_providers` + `terraform_required_version` rules turned on
+- [x] T001 Create the directory skeleton: `.github/workflows/`, `bootstrap/`, `bootstrap/outputs/`, `infra/`, `infra/modules/hub/`, `infra/modules/spoke/`, `infra/modules/workloads/validation/`, `config/`, `docs/`
+- [x] T002 [P] Create `.tool-versions` pinning `opentofu 1.9.0` (or current 1.9.x) at the repo root
+- [x] T003 [P] Update `.gitignore` at the repo root: REMOVE the line that ignores `**/.terraform.lock.hcl` (lock files must be committed per Constitution Principle V); ADD `bootstrap/outputs/*` with an exception for `bootstrap/outputs/.gitkeep`; ADD `infra/tfplan` and `infra/*.tfplan`
+- [x] T004 [P] Create `.tflint.hcl` at the repo root with `plugin "azurerm"` (source = `terraform-linters/tflint-ruleset-azurerm`, version pinned) enabled and the `terraform_required_providers` + `terraform_required_version` rules turned on
 - [ ] T005 [P] Create `infra/README.md` describing the root-and-three-modules composition with a one-paragraph link map back to `specs/001-hub-spoke-foundation/plan.md`
 
 ---
@@ -77,52 +77,52 @@ Single OpenTofu root in `infra/`, three configuration files in `config/`, one bo
 
 ### Hub module — split across multiple files for clean diffs
 
-- [ ] T023 [US1] Create `infra/modules/hub/variables.tf` declaring inputs that surface every knob from `data-model.md`'s Platform entity table that the hub needs (subscription_id, resource_group_name, region, address_space, dns_zones, workspace_retention_days, naming_prefix, vpn_client_address_pool, tenant_id, vpn_access_group_object_id, tags)
-- [ ] T024 [P] [US1] Implement hub RG using `Azure/avm-res-resources-resourcegroup/azurerm ~> 0.4` (`enable_telemetry = false`) in `infra/modules/hub/rg.tf`
-- [ ] T025 [P] [US1] Implement hub VNet using `Azure/avm-res-network-virtualnetwork/azurerm ~> 0.17` in `infra/modules/hub/vnet.tf` with three subnets: `GatewaySubnet` (`/27`, no NSG), `AzureDnsResolverInbound` (`/28`, delegated to `Microsoft.Network/dnsResolvers`, no NSG), and `snet-${prefix}-hub-reserve` (`/24`). Use the AVM `subnets` map.
-- [ ] T026 [P] [US1] Implement the gateway public IP using `Azure/avm-res-network-publicipaddress/azurerm ~> 0.2` (Standard SKU, Static allocation) in `infra/modules/hub/gateway.tf`
-- [ ] T027 [US1] Add the native `azurerm_virtual_network_gateway` resource to `infra/modules/hub/gateway.tf` with `type = "Vpn"`, `vpn_type = "RouteBased"`, `sku = "VpnGw1"`, `generation = "Generation2"`, an `ip_configuration` referencing the GatewaySubnet + the public IP from T026, and `vpn_client_configuration` containing `address_space = [var.vpn_client_address_pool]`, `vpn_client_protocols = ["OpenVPN"]`, `aad_tenant = "https://login.microsoftonline.com/${var.tenant_id}/"`, `aad_audience = "41b23e61-6c1e-4545-b367-cd054e0ed4b4"`, `aad_issuer = "https://sts.windows.net/${var.tenant_id}/"`. Sequential after T026 (same file).
-- [ ] T028 [P] [US1] Implement DNS Private Resolver inbound endpoint using `Azure/avm-res-network-dnsresolver/azurerm ~> 0.8` in `infra/modules/hub/resolver.tf` with one `inbound_endpoints` entry pointing at the `AzureDnsResolverInbound` subnet (dynamic IP assignment) and zero `outbound_endpoints`
-- [ ] T029 [P] [US1] Implement Private DNS zones using `Azure/avm-res-network-privatednszone/azurerm ~> 0.5` in `infra/modules/hub/dns.tf`, with one module instance per name in `var.dns_zones`. Include a `virtual_network_links` entry that links the hub VNet itself (so the inbound resolver can resolve every zone).
-- [ ] T030 [P] [US1] Implement the Log Analytics workspace using `Azure/avm-res-operationalinsights-workspace/azurerm ~> 0.5` in `infra/modules/hub/observability.tf` with `sku = "PerGB2018"`, `retention_in_days = var.workspace_retention_days`
-- [ ] T031 [US1] Add diagnostic settings in `infra/modules/hub/observability.tf` — one for the VPN gateway (categories: `GatewayDiagnosticLog`, `TunnelDiagnosticLog`, `RouteDiagnosticLog`, `IKEDiagnosticLog`, `P2SDiagnosticLog`; all metrics) routed to the workspace; one for the DNS Private Resolver inbound endpoint (all available categories + metrics) routed to the workspace. Use AVM modules' built-in `diagnostic_settings` inputs where available; fall back to native `azurerm_monitor_diagnostic_setting` if the AVM module doesn't expose the relevant categories. Sequential after T030 (same file).
-- [ ] T032 [US1] Create `infra/modules/hub/outputs.tf` exposing: `vnet_id`, `vnet_name`, `gateway_subnet_id`, `vpn_gateway_id`, `vpn_gateway_name`, `resolver_inbound_endpoint_ip`, `private_dns_zone_ids` (map keyed by zone name), `private_dns_zone_resource_group_name`, `workspace_id`, `workspace_resource_id`
+- [ ] T021 [US1] Create `infra/modules/hub/variables.tf` declaring inputs that surface every knob from `data-model.md`'s Platform entity table that the hub needs (subscription_id, resource_group_name, region, address_space, dns_zones, workspace_retention_days, naming_prefix, vpn_client_address_pool, tenant_id, vpn_access_group_object_id, tags)
+- [ ] T022 [P] [US1] Implement hub RG using `Azure/avm-res-resources-resourcegroup/azurerm ~> 0.4` (`enable_telemetry = false`) in `infra/modules/hub/rg.tf`
+- [ ] T023 [P] [US1] Implement hub VNet using `Azure/avm-res-network-virtualnetwork/azurerm ~> 0.17` in `infra/modules/hub/vnet.tf` with three subnets: `GatewaySubnet` (`/27`, no NSG), `AzureDnsResolverInbound` (`/28`, delegated to `Microsoft.Network/dnsResolvers`, no NSG), and `snet-${prefix}-hub-reserve` (`/24`). Use the AVM `subnets` map.
+- [ ] T024 [P] [US1] Implement the gateway public IP using `Azure/avm-res-network-publicipaddress/azurerm ~> 0.2` (Standard SKU, Static allocation) in `infra/modules/hub/gateway.tf`
+- [ ] T025 [US1] Add the native `azurerm_virtual_network_gateway` resource to `infra/modules/hub/gateway.tf` with `type = "Vpn"`, `vpn_type = "RouteBased"`, `sku = "VpnGw1"`, `generation = "Generation2"`, an `ip_configuration` referencing the GatewaySubnet + the public IP from T024, and `vpn_client_configuration` containing: `address_space = [var.vpn_client_address_pool]`, `vpn_client_protocols = ["OpenVPN"]`, `aad_tenant = "https://login.microsoftonline.com/${var.tenant_id}/"`, `aad_audience = "41b23e61-6c1e-4545-b367-cd054e0ed4b4"`, `aad_issuer = "https://sts.windows.net/${var.tenant_id}/"`, and **`additional_dns_servers = [<DNS Private Resolver inbound endpoint IP from T026's output>]`** — this is the field that pushes the resolver IP to the Azure VPN client and satisfies FR-005 / FR-007. Use the exact AVM output name from T026 (commonly `module.<resolver>.inbound_endpoint_ips[0]` or equivalent — verify against the resolver AVM's outputs when wiring). Sequential after T024 (same file) and depends on T026 having declared its outputs.
+- [ ] T026 [P] [US1] Implement DNS Private Resolver inbound endpoint using `Azure/avm-res-network-dnsresolver/azurerm ~> 0.8` in `infra/modules/hub/resolver.tf` with one `inbound_endpoints` entry pointing at the `AzureDnsResolverInbound` subnet (dynamic IP assignment) and zero `outbound_endpoints`. Confirm the module exposes the assigned inbound endpoint IP as an output (used by T025).
+- [ ] T027 [P] [US1] Implement Private DNS zones using `Azure/avm-res-network-privatednszone/azurerm ~> 0.5` in `infra/modules/hub/dns.tf`, with one module instance per name in `var.dns_zones`. Include a `virtual_network_links` entry that links the hub VNet itself (so the inbound resolver can resolve every zone).
+- [ ] T028 [P] [US1] Implement the Log Analytics workspace using `Azure/avm-res-operationalinsights-workspace/azurerm ~> 0.5` in `infra/modules/hub/observability.tf` with `sku = "PerGB2018"`, `retention_in_days = var.workspace_retention_days`
+- [ ] T029 [US1] Add diagnostic settings in `infra/modules/hub/observability.tf` — one for the VPN gateway (categories: `GatewayDiagnosticLog`, `TunnelDiagnosticLog`, `RouteDiagnosticLog`, `IKEDiagnosticLog`, `P2SDiagnosticLog`; all metrics) routed to the workspace; one for the DNS Private Resolver inbound endpoint (all available categories + metrics) routed to the workspace. Use AVM modules' built-in `diagnostic_settings` inputs where available; fall back to native `azurerm_monitor_diagnostic_setting` if the AVM module doesn't expose the relevant categories. Sequential after T028 (same file).
+- [ ] T030 [US1] Create `infra/modules/hub/outputs.tf` exposing: `vnet_id`, `vnet_name`, `gateway_subnet_id`, `vpn_gateway_id`, `vpn_gateway_name`, `resolver_inbound_endpoint_ip`, `private_dns_zone_ids` (map keyed by zone name), `private_dns_zone_resource_group_name`, `workspace_id`, `workspace_resource_id`
 
 ### Spoke module — split across multiple files
 
-- [ ] T033 [US1] Create `infra/modules/spoke/variables.tf` declaring: `spoke_name`, `resource_group_name`, `region`, `address_space`, `workload_subnet_prefix`, `naming_prefix`, `hub_vnet_id`, `hub_vnet_resource_group_name`, `hub_private_dns_zone_ids` (map), `vpn_client_address_pool`, `tags`
-- [ ] T034 [P] [US1] Implement spoke RG using the resource-group AVM in `infra/modules/spoke/rg.tf`
-- [ ] T035 [P] [US1] Implement spoke VNet using the VNet AVM in `infra/modules/spoke/vnet.tf` with one `subnets` entry — name `"snet-${prefix}-spoke-${spoke_name}-workload"`, address prefix `var.workload_subnet_prefix`, `network_security_group_id` referencing the NSG from T036
-- [ ] T036 [P] [US1] Implement workload NSG using `Azure/avm-res-network-networksecuritygroup/azurerm ~> 0.5` in `infra/modules/spoke/nsg.tf` with exactly one inbound `security_rule`: name `Allow-VpnClientPool-Any`, priority `100`, direction `Inbound`, access `Allow`, protocol `*`, source_address_prefix `var.vpn_client_address_pool`, source/destination_port_range `*`, destination_address_prefix `*`.
-- [ ] T037 [P] [US1] Implement bidirectional peering using the AVM peering submodule `Azure/avm-res-network-virtualnetwork/azurerm//modules/peering` in `infra/modules/spoke/peering.tf` with `create_reverse_peering = true`, hub-side `allow_gateway_transit = true`, spoke-side `use_remote_gateways = true`. Pass `providers = { azurerm = azurerm, azurerm.hub = azurerm.hub }` through `configuration_aliases` (the hub provider is forwarded from the root).
-- [ ] T038 [P] [US1] Implement private DNS VNet links in `infra/modules/spoke/dns-links.tf` — one `azurerm_private_dns_zone_virtual_network_link` per zone ID in `var.hub_private_dns_zone_ids`, with `registration_enabled = false`. Use the hub provider alias (zone lives in hub sub).
-- [ ] T039 [US1] Create `infra/modules/spoke/outputs.tf` exposing `vnet_id`, `vnet_name`, `workload_subnet_id`, `resource_group_name`
+- [ ] T031 [US1] Create `infra/modules/spoke/variables.tf` declaring: `spoke_name`, `resource_group_name`, `region`, `address_space`, `workload_subnet_prefix`, `naming_prefix`, `hub_vnet_id`, `hub_vnet_resource_group_name`, `hub_private_dns_zone_ids` (map), `vpn_client_address_pool`, `tags`
+- [ ] T032 [P] [US1] Implement spoke RG using the resource-group AVM in `infra/modules/spoke/rg.tf`
+- [ ] T033 [P] [US1] Implement spoke VNet using the VNet AVM in `infra/modules/spoke/vnet.tf` with one `subnets` entry — name `"snet-${prefix}-spoke-${spoke_name}-workload"`, address prefix `var.workload_subnet_prefix`, `network_security_group_id` referencing the NSG from T034
+- [ ] T034 [P] [US1] Implement workload NSG using `Azure/avm-res-network-networksecuritygroup/azurerm ~> 0.5` in `infra/modules/spoke/nsg.tf` with exactly one inbound `security_rule`: name `Allow-VpnClientPool-Any`, priority `100`, direction `Inbound`, access `Allow`, protocol `*`, source_address_prefix `var.vpn_client_address_pool`, source/destination_port_range `*`, destination_address_prefix `*`.
+- [ ] T035 [P] [US1] Implement bidirectional peering using the AVM peering submodule `Azure/avm-res-network-virtualnetwork/azurerm//modules/peering` in `infra/modules/spoke/peering.tf` with `create_reverse_peering = true`, hub-side `allow_gateway_transit = true`, spoke-side `use_remote_gateways = true`. Pass `providers = { azurerm = azurerm, azurerm.hub = azurerm.hub }` through `configuration_aliases` (the hub provider is forwarded from the root).
+- [ ] T036 [P] [US1] Implement private DNS VNet links in `infra/modules/spoke/dns-links.tf` — one `azurerm_private_dns_zone_virtual_network_link` per zone ID in `var.hub_private_dns_zone_ids`, with `registration_enabled = false`. Use the hub provider alias (zone lives in hub sub). Note: link-conflict handling (Edge Case: "Private DNS zone already linked elsewhere") is delegated to the Azure API's natural error response — no explicit pre-check; see `research.md` R-006.
+- [ ] T037 [US1] Create `infra/modules/spoke/outputs.tf` exposing `vnet_id`, `vnet_name`, `workload_subnet_id`, `resource_group_name`
 
 ### Validation workload module — split across files
 
-- [ ] T040 [P] [US1] Create `infra/modules/workloads/validation/variables.tf` declaring `target_resource_group_name`, `target_subnet_id`, `target_private_dns_zone_id_blob` (for the storage PE's zone group), `vpn_access_group_object_id`, `region`, `naming_prefix`, `tags`
-- [ ] T041 [P] [US1] Implement the validation VM using `Azure/avm-res-compute-virtualmachine/azurerm ~> 0.20` in `infra/modules/workloads/validation/vm.tf`: `Standard_B1s`, Ubuntu 22.04 LTS Gen 2 (Canonical image), system-assigned managed identity enabled, one network interface in `var.target_subnet_id`, `disable_password_authentication = true`, a throwaway public SSH key generated via `tls_private_key` (provider `hashicorp/tls`) whose private half is NOT persisted. Include an `extensions` map entry for `AADSSHLoginForLinux`: publisher `Microsoft.Azure.ActiveDirectory`, type `AADSSHLoginForLinux`, type_handler_version `1.0`, auto-upgrade minor version true.
-- [ ] T042 [P] [US1] Implement the storage account using `Azure/avm-res-storage-storageaccount/azurerm ~> 0.7` in `infra/modules/workloads/validation/storage.tf` with: `account_kind = "StorageV2"`, `account_tier = "Standard"`, `account_replication_type = "LRS"`, `shared_access_key_enabled = false`, `default_to_oauth_authentication = true`, `public_network_access_enabled = false`, `min_tls_version = "TLS1_2"`. Inline `private_endpoints = { blob = { ... } }` targeting `var.target_subnet_id` and registering the A record in `var.target_private_dns_zone_id_blob`. Add a `containers = { validation = { ... } }` map for a single `validation` container.
-- [ ] T043 [P] [US1] Implement role assignments in `infra/modules/workloads/validation/rbac.tf`: `azurerm_role_assignment` granting `Virtual Machine User Login` on the VM scope to `var.vpn_access_group_object_id`; `azurerm_role_assignment` granting `Storage Blob Data Reader` on the storage account scope to `var.vpn_access_group_object_id`.
-- [ ] T044 [US1] Create `infra/modules/workloads/validation/outputs.tf` exposing `vm_name`, `vm_resource_id`, `storage_account_name`, `blob_private_endpoint_fqdn`
+- [ ] T038 [P] [US1] Create `infra/modules/workloads/validation/variables.tf` declaring `target_resource_group_name`, `target_subnet_id`, `target_private_dns_zone_id_blob` (for the storage PE's zone group), `vpn_access_group_object_id`, `region`, `naming_prefix`, `tags`
+- [ ] T039 [P] [US1] Implement the validation VM using `Azure/avm-res-compute-virtualmachine/azurerm ~> 0.20` in `infra/modules/workloads/validation/vm.tf`: `Standard_B1s`, Ubuntu 22.04 LTS Gen 2 (Canonical image), system-assigned managed identity enabled, one network interface in `var.target_subnet_id`, `disable_password_authentication = true`, a throwaway public SSH key generated via `tls_private_key` (provider `hashicorp/tls`) whose private half is NOT persisted. Include an `extensions` map entry for `AADSSHLoginForLinux`: publisher `Microsoft.Azure.ActiveDirectory`, type `AADSSHLoginForLinux`, type_handler_version `1.0`, auto-upgrade minor version true.
+- [ ] T040 [P] [US1] Implement the storage account using `Azure/avm-res-storage-storageaccount/azurerm ~> 0.7` in `infra/modules/workloads/validation/storage.tf` with: `account_kind = "StorageV2"`, `account_tier = "Standard"`, `account_replication_type = "LRS"`, `shared_access_key_enabled = false`, `default_to_oauth_authentication = true`, `public_network_access_enabled = false`, `min_tls_version = "TLS1_2"`. Inline `private_endpoints = { blob = { ... } }` targeting `var.target_subnet_id` and registering the A record in `var.target_private_dns_zone_id_blob`. Add a `containers = { validation = { ... } }` map for a single `validation` container.
+- [ ] T041 [P] [US1] Implement role assignments in `infra/modules/workloads/validation/rbac.tf`: `azurerm_role_assignment` granting `Virtual Machine User Login` on the VM scope to `var.vpn_access_group_object_id`; `azurerm_role_assignment` granting `Storage Blob Data Reader` on the storage account scope to `var.vpn_access_group_object_id`.
+- [ ] T042 [US1] Create `infra/modules/workloads/validation/outputs.tf` exposing `vm_name`, `vm_resource_id`, `storage_account_name`, `blob_private_endpoint_fqdn`
 
 ### Root composition
 
-- [ ] T045 [US1] Add `module "hub"` invocation to `infra/main.tf` with `providers = { azurerm = azurerm.sub_hub }`, passing every input from `var.platform` plus the discovered VPN access group object ID
-- [ ] T046 [US1] Add `for_each` `module "spoke"` invocation to `infra/main.tf` iterating over `var.spokes` and routing the provider via `providers = { azurerm = ... }` resolved from each spoke's `subscription_slot`. Implementation note: since OpenTofu cannot dynamically select a provider in `for_each`, use the static-alias-per-slot pattern from `research.md` R-003 — wrap the spoke module call in a `for_each` per slot, where each block filters `var.spokes` to entries matching that slot and passes the matching alias. For Phase 3 MVP, only the `hub` slot is in use.
-- [ ] T047 [US1] Add `module "validation_workload"` invocation to `infra/main.tf`, scoped to the single spoke that has `include_validation_workload = true` (use a `for_each` over `{ for k, v in var.spokes : k => v if v.include_validation_workload }`). Pass `target_resource_group_name`, `target_subnet_id` (from the spoke module's output), `target_private_dns_zone_id_blob` (from the hub module's `private_dns_zone_ids["privatelink.blob.core.windows.net"]`), and `vpn_access_group_object_id` from `var.platform`.
-- [ ] T048 [US1] Populate `infra/outputs.tf` exposing: `vpn_gateway_name`, `vpn_client_address_pool`, `resolver_inbound_endpoint_ip`, `validation_vm_name` (conditional on workload existing), `validation_storage_account_name`, `validation_blob_private_endpoint_fqdn`
+- [ ] T043 [US1] Add `module "hub"` invocation to `infra/main.tf` with `providers = { azurerm = azurerm.sub_hub }`, passing every input from `var.platform` plus the discovered VPN access group object ID
+- [ ] T044 [US1] Add `for_each` `module "spoke"` invocation to `infra/main.tf` iterating over `var.spokes` and routing the provider via `providers = { azurerm = ... }` resolved from each spoke's `subscription_slot`. Implementation note: since OpenTofu cannot dynamically select a provider in `for_each`, use the static-alias-per-slot pattern from `research.md` R-003 — wrap the spoke module call in a `for_each` per slot, where each block filters `var.spokes` to entries matching that slot and passes the matching alias. For Phase 3 MVP, only the `hub` slot is in use.
+- [ ] T045 [US1] Add `module "validation_workload"` invocation to `infra/main.tf`, scoped to the single spoke that has `include_validation_workload = true` (use a `for_each` over `{ for k, v in var.spokes : k => v if v.include_validation_workload }`). Pass `target_resource_group_name`, `target_subnet_id` (from the spoke module's output), `target_private_dns_zone_id_blob` (from the hub module's `private_dns_zone_ids["privatelink.blob.core.windows.net"]`), and `vpn_access_group_object_id` from `var.platform`.
+- [ ] T046 [US1] Populate `infra/outputs.tf` exposing: `vpn_gateway_name`, `vpn_client_address_pool`, `resolver_inbound_endpoint_ip`, `validation_vm_name` (conditional on workload existing), `validation_storage_account_name`, `validation_blob_private_endpoint_fqdn`
 
 ### Initial configuration
 
-- [ ] T049 [P] [US1] Author `config/platform.auto.tfvars` with the hub coordinates (placeholders for `subscription_id` and `tenant_id` — replaced post-bootstrap), `region = "eastus2"`, `hub_address_space = "10.0.0.0/22"`, `vpn_client_address_pool = "10.255.0.0/16"`, `dns_zones = ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"]`, `workspace_retention_days = 30`, `naming_prefix = "plz"`, `github_repo = "<owner>/<repo>"`, empty `tags`. Leave `vpn_access_group_object_id` as a placeholder string commented `# populated by bootstrap`.
-- [ ] T050 [P] [US1] Author `config/spokes.auto.tfvars` with one entry: spoke `validation` → `subscription_slot = "hub"`, `resource_group_name = "rg-plz-spoke-validation-eastus2"`, `address_space = "10.1.0.0/22"`, `workload_subnet_prefix = "10.1.0.0/24"`, `include_validation_workload = true`
+- [ ] T047 [P] [US1] Author `config/platform.auto.tfvars` with the hub coordinates (placeholders for `subscription_id` and `tenant_id` — replaced post-bootstrap), `region = "eastus2"`, `hub_address_space = "10.0.0.0/22"`, `vpn_client_address_pool = "10.255.0.0/16"`, `dns_zones = ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"]`, `workspace_retention_days = 30`, `naming_prefix = "plz"`, `github_repo = "<owner>/<repo>"`, empty `tags`. Leave `vpn_access_group_object_id` as a placeholder string commented `# populated by bootstrap`.
+- [ ] T048 [P] [US1] Author `config/spokes.auto.tfvars` with one entry: spoke `validation` → `subscription_slot = "hub"`, `resource_group_name = "rg-plz-spoke-validation-eastus2"`, `address_space = "10.1.0.0/22"`, `workload_subnet_prefix = "10.1.0.0/24"`, `include_validation_workload = true`
 
 ### End-to-end bring-up
 
-- [ ] T051 [US1] On a fresh feature branch, run `bootstrap/bootstrap.ps1` end-to-end against the operator's `az login` session. Review `bootstrap/outputs/bootstrap-report.md`. Set the repository Variables (`ARM_TENANT_ID`, `ARM_CLIENT_ID`, `ARM_SUBSCRIPTION_ID`, `TF_STATE_*`) in GitHub. Commit `bootstrap/outputs/discovered.auto.tfvars.json` to the branch.
-- [ ] T052 [US1] Open the initial deployment PR. Confirm `plan.yml` succeeds and the plan diff in the artifact matches expectations. Merge to default branch. `apply.yml` runs — initial apply takes ~30–45 min due to VPN gateway provisioning (Edge Cases: "VPN gateway provisioning latency"). Confirm completion.
-- [ ] T053 [US1] Execute `quickstart.md` Part 1 steps 1.2 – 1.7 on the operator's workstation: import VPN profile, connect, validate DNS resolution of the blob private endpoint and the VM A record, `az ssh vm` to the VM, `az storage blob list --auth-mode login`. Record results in a comment on the PR (or a follow-up issue) as evidence for SC-001.
+- [ ] T049 [US1] On a fresh feature branch, run `bootstrap/bootstrap.ps1` end-to-end against the operator's `az login` session. Review `bootstrap/outputs/bootstrap-report.md`. Set the repository Variables (`ARM_TENANT_ID`, `ARM_CLIENT_ID`, `ARM_SUBSCRIPTION_ID`, `TF_STATE_*`) in GitHub. Commit `bootstrap/outputs/discovered.auto.tfvars.json` to the branch.
+- [ ] T050 [US1] Open the initial deployment PR. Confirm `plan.yml` succeeds and the plan diff in the artifact matches expectations. Merge to default branch. `apply.yml` runs — initial apply takes ~30–45 min due to VPN gateway provisioning (Edge Cases: "VPN gateway provisioning latency"). Confirm completion.
+- [ ] T051 [US1] Execute `quickstart.md` Part 1 steps 1.2 – 1.7 on the operator's workstation: import VPN profile, connect, validate DNS resolution of the blob private endpoint and the VM A record, `az ssh vm` to the VM, `az storage blob list --auth-mode login`. Record results in a comment on the PR (or a follow-up issue) as evidence for SC-001.
 
 **Checkpoint**: User Story 1 is independently validated end-to-end. The MVP is shippable.
 
@@ -136,12 +136,12 @@ Single OpenTofu root in `infra/`, three configuration files in `config/`, one bo
 
 Most of the implementation work for US2 was already done in US1 (the spoke module is generic; `for_each` is in place; locals.tf validations are in place). Two remaining tasks make US2 production-ready:
 
-- [ ] T054 [US2] Extend `.github/workflows/plan.yml` with a final `actions/github-script@v7` step that downloads `plan.txt`, formats it (truncated to ≤ 65 KiB to fit a GitHub comment), and posts it as a sticky comment on the PR (`<!-- speckit-tfplan -->` marker) so subsequent pushes update the same comment rather than spam. Required for the operator to review the plan diff before merging (FR-020).
-- [ ] T055 [P] [US2] Author `docs/adding-a-spoke.md` walking through: (a) the same-sub flow (edit `config/spokes.auto.tfvars` only) with a copy-paste-ready example; (b) the cross-sub flow (add a slot to `config/subscriptions.auto.tfvars` + add a `provider "azurerm" { alias = "sub_<slot>" }` block to `infra/providers.tf` + edit `config/spokes.auto.tfvars`) with a copy-paste-ready example. Reference `contracts/spokes-inventory.schema.md`.
+- [ ] T052 [US2] Extend `.github/workflows/plan.yml` with a final `actions/github-script@v7` step that downloads `plan.txt`, formats it (truncated to ≤ 65 KiB to fit a GitHub comment), and posts it as a sticky comment on the PR (`<!-- speckit-tfplan -->` marker) so subsequent pushes update the same comment rather than spam. Required for the operator to review the plan diff before merging (FR-020).
+- [ ] T053 [P] [US2] Author `docs/adding-a-spoke.md` walking through: (a) the same-sub flow (edit `config/spokes.auto.tfvars` only) with a copy-paste-ready example; (b) the cross-sub flow (add a slot to `config/subscriptions.auto.tfvars` + add a `provider "azurerm" { alias = "sub_<slot>" }` block to `infra/providers.tf` + edit `config/spokes.auto.tfvars`) with a copy-paste-ready example. Reference `contracts/spokes-inventory.schema.md`.
 
 ### End-to-end validation
 
-- [ ] T056 [US2] Execute `quickstart.md` Part 2 (steps 2.1 – 2.4): add a `smoketest` spoke at `10.2.0.0/22`, open + merge a PR, confirm a clean `~5 minute` apply, then confirm the VPN client has a route for `10.2.0.0/22` (route table on Windows or refreshed profile). Then run the three negative tests in `quickstart.md` Part 3 (3.1 overlap, 3.2 duplicate RG name, 3.3 unknown slot) and confirm each is rejected at plan time with the documented error message.
+- [ ] T054 [US2] Execute `quickstart.md` Part 2 (steps 2.1 – 2.4): add a `smoketest` spoke at `10.2.0.0/22`, open + merge a PR, confirm a clean `~5 minute` apply, then confirm the VPN client has a route for `10.2.0.0/22` (route table on Windows or refreshed profile). Then run the three negative tests in `quickstart.md` Part 3 (3.1 overlap, 3.2 duplicate RG name, 3.3 unknown slot) and confirm each is rejected at plan time with the documented error message.
 
 **Checkpoint**: User Stories 1 AND 2 are independently testable and both pass.
 
@@ -153,9 +153,9 @@ Most of the implementation work for US2 was already done in US1 (the spoke modul
 
 **Independent Test**: `quickstart.md` Part 4 (teardown rehearsal) completes successfully.
 
-- [ ] T057 [US3] Create `.github/workflows/destroy.yml` triggered by `workflow_dispatch` with `permissions: id-token: write, contents: read`. Jobs: checkout → setup-opentofu → azure/login (OIDC) → `tofu init -backend-config=...` → `tofu plan -destroy -out=destroyplan -input=false` → upload the destroy plan as an artifact → `tofu apply -input=false destroyplan`. Add an `environment:` block (e.g., `environment: destroy`) so the operator can require manual approval per GitHub environment protection rules.
-- [ ] T058 [P] [US3] Author `docs/teardown.md` documenting: when to run `destroy.yml`, what it removes (everything in the spoke RGs + the hub RG; nothing in the state account itself), the expected ~15-minute duration (VPN gateway deletion dominates), and the verification steps post-destroy (Azure portal RG listing, plus `tofu state list` should return zero resources).
-- [ ] T059 [US3] Execute `quickstart.md` Part 4: trigger `destroy.yml`, confirm the destroy plan in the artifact, approve the environment gate, watch destruction complete, then re-trigger `apply.yml`. After the new apply finishes, re-execute `quickstart.md` Part 1 steps 1.2 – 1.7 and confirm SC-006 passes.
+- [ ] T055 [US3] Create `.github/workflows/destroy.yml` triggered by `workflow_dispatch` with `permissions: id-token: write, contents: read`. Jobs: checkout → setup-opentofu → azure/login (OIDC) → `tofu init -backend-config=...` → `tofu plan -destroy -out=destroyplan -input=false` → upload the destroy plan as an artifact → `tofu apply -input=false destroyplan`. Add an `environment:` block (e.g., `environment: destroy`) so the operator can require manual approval per GitHub environment protection rules.
+- [ ] T056 [P] [US3] Author `docs/teardown.md` documenting: when to run `destroy.yml`, what it removes (everything in the spoke RGs + the hub RG; nothing in the state account itself), the expected ~15-minute duration (VPN gateway deletion dominates), and the verification steps post-destroy (Azure portal RG listing, plus `tofu state list` should return zero resources).
+- [ ] T057 [US3] Execute `quickstart.md` Part 4: trigger `destroy.yml`, confirm the destroy plan in the artifact, approve the environment gate, watch destruction complete, then re-trigger `apply.yml`. After the new apply finishes, re-execute `quickstart.md` Part 1 steps 1.2 – 1.7 and confirm SC-006 passes.
 
 **Checkpoint**: All three user stories independently functional. Platform meets SC-001 through SC-006.
 
@@ -165,12 +165,12 @@ Most of the implementation work for US2 was already done in US1 (the spoke modul
 
 **Purpose**: Documentation, cost evidence, tflint/trivy tuning, secret-leak scan. Improvements that affect multiple user stories.
 
-- [ ] T060 [P] Author `docs/architecture.md` containing: a topology diagram (ASCII or Mermaid) showing hub + slots + spokes + the VPN tunnel + DNS query flow; a one-paragraph "how to read this" section; a "decisions" subsection summarizing R-001 through R-013 from `research.md` with stable anchor links.
-- [ ] T061 [P] Author `docs/cost-baseline.md` materializing the table from `research.md` R-012 with current Azure pricing for the operator's region (eastus2 by default). Include a "How this is reviewed" subsection that names the PR-review trigger from SC-007 (any PR that adds an always-on resource).
-- [ ] T062 [P] Tune `.tflint.hcl` to additionally enable the `azurerm_storage_account_invalid_*` rules, `terraform_module_pinned_source` (warn level), and `terraform_unused_declarations`. Set `tflint --recursive` as the canonical invocation; verify it passes against the current tree.
-- [ ] T063 [P] Run `trivy config infra/ --format table` against the current tree; for any genuine false positives, add suppression entries to `.trivyignore` with one-line rationales. For real findings, file as TODOs (do not suppress).
-- [ ] T064 [P] Update repository-root `README.md` with: a one-paragraph "what is this" intro pointing at `specs/001-hub-spoke-foundation/spec.md`; a "first-time setup" pointer to `bootstrap/README.md`; an "adding a spoke" pointer to `docs/adding-a-spoke.md`; a "validating the deployment" pointer to `specs/001-hub-spoke-foundation/quickstart.md`; a "governance" pointer to `.specify/memory/constitution.md`.
-- [ ] T065 Confirm SC-005 (zero long-lived secrets) by: (a) running `gitleaks detect --source . --no-banner` (or `trufflehog filesystem .`) against the repo and confirming zero findings; (b) running `az ad app credential list --id $deploymentAppId` and confirming zero password credentials; (c) running `az storage account keys list -n $stateAccount` against the state account (the SP cannot, but the operator can) and confirming the keys exist (Azure-side, unavoidable) but that no GitHub secret, no tfvars file, and no workflow uses them. Record evidence in a follow-up `docs/secret-audit.md` file.
+- [ ] T058 [P] Author `docs/architecture.md` containing: a topology diagram (ASCII or Mermaid) showing hub + slots + spokes + the VPN tunnel + DNS query flow; a one-paragraph "how to read this" section; a "decisions" subsection summarizing R-001 through R-013 from `research.md` with stable anchor links.
+- [ ] T059 [P] Author `docs/cost-baseline.md` materializing the table from `research.md` R-012 with current Azure pricing for the operator's region (eastus2 by default). Include a "How this is reviewed" subsection that names the PR-review trigger from SC-007 (any PR that adds an always-on resource).
+- [ ] T060 [P] Tune `.tflint.hcl` to additionally enable the `azurerm_storage_account_invalid_*` rules, `terraform_module_pinned_source` (warn level), and `terraform_unused_declarations`. Set `tflint --recursive` as the canonical invocation; verify it passes against the current tree.
+- [ ] T061 [P] Run `trivy config infra/ --format table` against the current tree; for any genuine false positives, add suppression entries to `.trivyignore` with one-line rationales. For real findings, file as TODOs (do not suppress).
+- [ ] T062 [P] Update repository-root `README.md` with: a one-paragraph "what is this" intro pointing at `specs/001-hub-spoke-foundation/spec.md`; a "first-time setup" pointer to `bootstrap/README.md`; an "adding a spoke" pointer to `docs/adding-a-spoke.md`; a "validating the deployment" pointer to `specs/001-hub-spoke-foundation/quickstart.md`; a "governance" pointer to `.specify/memory/constitution.md`.
+- [ ] T063 Confirm SC-005 (zero long-lived secrets) by: (a) running `gitleaks detect --source . --no-banner` (or `trufflehog filesystem .`) against the repo and confirming zero findings; (b) running `az ad app credential list --id $deploymentAppId` and confirming zero password credentials; (c) running `az storage account keys list -n $stateAccount` against the state account (the SP cannot, but the operator can) and confirming the keys exist (Azure-side, unavoidable) but that no GitHub secret, no tfvars file, and no workflow uses them. Record evidence in a follow-up `docs/secret-audit.md` file.
 
 ---
 
@@ -183,7 +183,7 @@ Most of the implementation work for US2 was already done in US1 (the spoke modul
 - **Phase 3 (US1, P1)**: depends on Phase 2.
 - **Phase 4 (US2, P1)**: depends on Phase 3 (US2 builds on the spoke module and the deployed hub; you cannot demonstrate "add a spoke" before there's a hub).
 - **Phase 5 (US3, P2)**: depends on Phase 4 being shippable (you tear down a working platform, not an empty one).
-- **Phase 6 (Polish)**: starts after Phase 3 minimum; T060–T064 can run in parallel with Phase 4 or Phase 5 work.
+- **Phase 6 (Polish)**: starts after Phase 3 minimum; T058–T062 can run in parallel with Phase 4 or Phase 5 work.
 
 ### User story dependencies
 
@@ -195,25 +195,25 @@ Most of the implementation work for US2 was already done in US1 (the spoke modul
 
 - Setup: T001 first (directory must exist); T002–T005 then parallel.
 - Foundational: T006–T011 (OTF scaffold) sequential within `infra/` because they reference each other's symbols; T012–T018 (bootstrap) is one PowerShell file authored top-down; T019/T020 (workflows) are independent of each other and of the OTF scaffold.
-- US1 hub module (T024–T031): tasks marked `[P]` are in separate files and can run in parallel; sequential dependencies are inside the same file (T026 → T027 in `gateway.tf`; T030 → T031 in `observability.tf`).
-- US1 spoke module (T034–T038): all `[P]` because each is its own file.
-- US1 validation workload (T041–T043): all `[P]` because each is its own file.
-- US1 root composition (T045–T048): sequential — all in `infra/main.tf` + `infra/outputs.tf`.
-- US1 end-to-end (T051–T053): strictly sequential (bootstrap → PR → quickstart).
+- US1 hub module (T022–T029): tasks marked `[P]` are in separate files and can run in parallel; sequential dependencies are inside the same file (T024 → T025 in `gateway.tf`; T028 → T029 in `observability.tf`). T025 additionally depends on T026 (the VPN gateway needs the resolver IP as `additional_dns_servers`), but since these are in different files the dependency is at apply time, not authorship time — T026 can be authored first or in parallel with T024.
+- US1 spoke module (T032–T036): all `[P]` because each is its own file.
+- US1 validation workload (T039–T041): all `[P]` because each is its own file.
+- US1 root composition (T043–T046): sequential — all in `infra/main.tf` + `infra/outputs.tf`.
+- US1 end-to-end (T049–T051): strictly sequential (bootstrap → PR → quickstart).
 
 ### Parallel opportunities (concrete)
 
-Within US1, after T023 + T033 + T040 are checked, the following can be authored in parallel by separate workers (or in a single session by an LLM dispatching independent edits):
+Within US1, after T021 + T031 + T038 are checked, the following can be authored in parallel by separate workers (or in a single session by an LLM dispatching independent edits):
 
 ```
-T024 (hub/rg.tf)         T034 (spoke/rg.tf)         T041 (validation/vm.tf)
-T025 (hub/vnet.tf)       T035 (spoke/vnet.tf)       T042 (validation/storage.tf)
-T026 (hub/gateway.tf)    T036 (spoke/nsg.tf)        T043 (validation/rbac.tf)
-T028 (hub/resolver.tf)   T037 (spoke/peering.tf)
-T029 (hub/dns.tf)        T038 (spoke/dns-links.tf)
-T030 (hub/observability.tf)
-T049 (config/platform.auto.tfvars)
-T050 (config/spokes.auto.tfvars)
+T022 (hub/rg.tf)         T032 (spoke/rg.tf)         T039 (validation/vm.tf)
+T023 (hub/vnet.tf)       T033 (spoke/vnet.tf)       T040 (validation/storage.tf)
+T024 (hub/gateway.tf)    T034 (spoke/nsg.tf)        T041 (validation/rbac.tf)
+T026 (hub/resolver.tf)   T035 (spoke/peering.tf)
+T027 (hub/dns.tf)        T036 (spoke/dns-links.tf)
+T028 (hub/observability.tf)
+T047 (config/platform.auto.tfvars)
+T048 (config/spokes.auto.tfvars)
 ```
 
 That's ~14 tasks executable in parallel mid-US1.

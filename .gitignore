@@ -3,7 +3,6 @@
 
 # Terraform / OpenTofu
 **/.terraform/*
-**/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
@@ -21,3 +20,11 @@ terraform.rc
 tofu.tfstate
 tofu.tfstate.backup
 .terraform.tfstate.lock.info
+
+# Plan artifacts
+infra/tfplan
+infra/*.tfplan
+
+# Bootstrap outputs (keep the directory, ignore its contents)
+bootstrap/outputs/*
+!bootstrap/outputs/.gitkeep

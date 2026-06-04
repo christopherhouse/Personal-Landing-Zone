@@ -75,7 +75,7 @@ Cross-cutting entities owned by the hub:
 | `hub_address_space` | string (CIDR) | Y | `10.0.0.0/22` | Subdivided into GatewaySubnet `10.0.3.0/27`, AzureDnsResolverSubnet `10.0.3.32/28`, and a reserve subnet `10.0.0.0/24` for future hub services. |
 | `vpn_client_address_pool` | string (CIDR) | Y | `10.255.0.0/16` | Carved from `10.255.0.0/8` to keep separation from the `10.0.0.0/8` spoke pool. Must not overlap with hub or any spoke (FR-011). |
 | `dns_zones` | list(string) | Y | `["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"]` | Operator can extend; every zone is linked to every spoke. |
-| `workspace_retention_days` | number | N | `30` | FR-022b minimum. |
+| `workspace_retention_days` | number | N | `30` | FR-025 minimum. |
 | `naming_prefix` | string | N | `plz` | Used in resource names (e.g., `rg-plz-hub-eastus2`, `vnet-plz-hub`). |
 | `github_repo` | string | Y | — | `<owner>/<repo>` form. Set during bootstrap; consumed by the apply workflow's environment scoping. |
 | `vpn_access_group_object_id` | string (GUID) | Y | — | Discovered by `bootstrap.ps1`; persisted to `bootstrap/outputs/discovered.auto.tfvars.json`. |

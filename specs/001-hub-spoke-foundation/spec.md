@@ -14,7 +14,7 @@ independent demo workload. From the VPN the operator must be able to resolve
 private DNS names and reach private IPs in the hub and in every spoke,
 without manual client-side configuration. Adding a new spoke must be a
 configuration-only change. The initial deployment includes the hub plus one
-spoke with a small test resource for end-to-end validation. All
+spoke containing a small validation workload for end-to-end validation. All
 authentication (CI/CD, IaC state, VPN) uses Entra ID with no long-lived
 secrets. Deployment is via a GitHub Actions pipeline against a single Azure
 subscription.
@@ -36,9 +36,9 @@ subscription.
 ### User Story 1 - First-time deployment of hub + initial spoke (Priority: P1)
 
 As the operator, I want to deploy the hub and one spoke containing a small
-test resource so that I can connect via P2S VPN and verify, end-to-end, that
-private DNS resolution and private connectivity work across the hub-spoke
-boundary.
+validation workload so that I can connect via P2S VPN and verify, end-to-end,
+that private DNS resolution and private connectivity work across the
+hub-spoke boundary.
 
 **Why this priority**: This is the MVP. Without a working hub + one
 validated spoke, the platform delivers no value and none of the later
@@ -46,29 +46,30 @@ scenarios can be exercised. Everything else builds on this slice.
 
 **Independent Test**: Fully testable in isolation. After the CI pipeline
 finishes the initial apply, the operator downloads the VPN profile, connects
-from a laptop, and on the first attempt (a) resolves the private DNS name of
-the test resource in the spoke, and (b) opens a private-IP session
-(SSH/RDP/HTTPS as appropriate) to the test resource. No hosts file edits,
-no manual DNS server entries.
+from a laptop, and on the first attempt (a) resolves the private DNS name
+of the validation workload in the spoke, and (b) opens a private-IP session
+(SSH/RDP/HTTPS as appropriate) to the validation workload. No hosts file
+edits, no manual DNS server entries.
 
 **Acceptance Scenarios**:
 
 1. **Given** the operator has merged the initial deployment PR to the
    default branch, **When** the GitHub Actions deployment workflow completes
    successfully, **Then** the hub VNet, P2S VPN gateway, private DNS
-   infrastructure, and the initial spoke (including its test resource) all
-   exist and are healthy.
+   infrastructure, and the initial spoke (including its validation workload)
+   all exist and are healthy.
 2. **Given** the deployment is complete and the operator's Entra account
    has been granted VPN access, **When** the operator downloads the
    VPN client profile and connects, **Then** the VPN session establishes
    without prompting for any shared secret or pre-shared key.
 3. **Given** the operator is connected to the VPN, **When** the operator
-   resolves the test resource's fully qualified private DNS name from the
-   client machine, **Then** the resolver returns the test resource's
+   resolves the validation workload's fully qualified private DNS name
+   from the client machine, **Then** the resolver returns the workload's
    private IP address.
 4. **Given** the operator is connected to the VPN, **When** the operator
-   initiates a private-IP session to the test resource on its documented
-   service port, **Then** the session succeeds within ten seconds.
+   initiates a private-IP session to the validation workload on its
+   documented service port, **Then** the session succeeds within ten
+   seconds.
 
 ---
 
@@ -226,16 +227,16 @@ end-to-end.
 - **FR-006**: All private DNS zones (including Azure Private Link zones
   for the services the operator plans to consume from spokes) MUST be
   owned in the hub and linked to every spoke that needs them.
-- **FR-007**: The VPN client profile MUST advertise DNS server addresses
-  that are themselves reachable over the VPN tunnel and that can resolve
-  every hub-owned private DNS zone.
+- **FR-007**: To satisfy FR-005, the VPN client profile MUST advertise
+  DNS server addresses that are themselves reachable over the VPN tunnel
+  and that can resolve every hub-owned private DNS zone.
 - **FR-007a**: The VPN tunnel MUST operate in split-tunnel mode. The VPN
   profile MUST advertise only the hub VNet CIDR, every deployed spoke
   VNet CIDR, and the inbound DNS resolver IP as routed prefixes; all
-  other client traffic MUST bypass the tunnel. The set of advertised
-  prefixes MUST update automatically when spokes are added or removed
-  (no manual VPN profile re-publication beyond what the operator does
-  to refresh the client).
+  other client traffic MUST bypass the tunnel. The gateway-side
+  configuration MUST update automatically when spokes are added or
+  removed (profile re-download via the portal may be required after
+  the routed-prefix list changes).
 
 **Adding and removing spokes**
 
@@ -281,8 +282,9 @@ end-to-end.
   input. The deployment identity MUST NOT be granted Microsoft Graph
   permissions to create, modify, or enumerate Entra groups; group
   membership is managed by the operator out-of-band.
-- **FR-016a**: Interactive access to the test virtual machine MUST use
-  Microsoft Entra ID login (the Azure AD login VM extension on Linux).
+- **FR-016a**: Interactive access to the validation workload's virtual
+  machine MUST use Microsoft Entra ID login (the Azure AD login VM
+  extension on Linux).
   Access MUST be gated by Azure RBAC (`Virtual Machine User Login` for
   standard access, `Virtual Machine Administrator Login` for elevated
   access) assigned to Entra principals. No SSH keys, no local Linux
@@ -329,25 +331,25 @@ end-to-end.
 - **FR-021**: Pipeline runs MUST be deterministic with respect to
   provider and module versions (versions pinned in the repository).
 
-**Observability**
-
-- **FR-022a**: The hub MUST contain exactly one Log Analytics workspace
-  used as the platform's diagnostic sink. Diagnostic settings MUST be
-  configured on the P2S VPN gateway and on the DNS Private Resolver,
-  routing their logs and metrics to this workspace. No other
-  platform-managed diagnostic settings are deployed by default; in
-  particular, NSG flow logs are NOT enabled by the platform.
-- **FR-022b**: The Log Analytics workspace MUST use the lowest-cost
-  configuration that supports the required diagnostic categories
-  (default pricing tier, shortest retention compatible with the
-  operator's needs — 30 days unless otherwise specified).
-
 **Cost posture**
 
 - **FR-022**: The hub MUST use the lowest VPN gateway SKU compatible
   with Entra-authenticated P2S VPN access.
 - **FR-023**: No Network Virtual Appliance, Azure Firewall, or premium
   Application Gateway / WAF tier is included in this release.
+
+**Observability**
+
+- **FR-024**: The hub MUST contain exactly one Log Analytics workspace
+  used as the platform's diagnostic sink. Diagnostic settings MUST be
+  configured on the P2S VPN gateway and on the DNS Private Resolver,
+  routing their logs and metrics to this workspace. No other
+  platform-managed diagnostic settings are deployed by default; in
+  particular, NSG flow logs are NOT enabled by the platform.
+- **FR-025**: The Log Analytics workspace MUST use the lowest-cost
+  configuration that supports the required diagnostic categories
+  (default pricing tier, shortest retention compatible with the
+  operator's needs — 30 days unless otherwise specified).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -378,9 +380,9 @@ end-to-end.
 - **Deployment identity**: The Entra-bound identity that GitHub Actions
   uses to authenticate to Azure via OIDC for both state access and
   resource deployment.
-- **Test resource**: A small resource provisioned in the initial spoke
-  that the operator can target to validate both private DNS resolution
-  and private-IP connectivity over the VPN.
+- **Validation workload**: A small resource set provisioned in the
+  initial spoke that the operator targets to validate both private DNS
+  resolution and private-IP connectivity over the VPN.
 - **Platform diagnostic sink**: A single Log Analytics workspace in the
   hub that receives diagnostic data from the P2S VPN gateway and the
   DNS Private Resolver.
@@ -432,19 +434,25 @@ end-to-end.
   assignments during the one-time bootstrap.
 - The VPN client tool used is the Entra-aware Azure VPN client (this is
   the only client that supports Entra-authenticated P2S VPN).
-- The initial test resource is a small Linux virtual machine (with the
-  Azure AD login extension installed; see FR-016a) plus a storage
-  account whose blob service is exposed via a private endpoint into the
-  test spoke. Together these exercise both raw private-IP connectivity
-  (`az ssh vm` to the VM, authenticated via Entra) and Azure Private
-  Link DNS auto-registration (resolving the storage private endpoint
-  name from the VPN client).
+- The initial validation workload is a small Linux virtual machine
+  (with the Azure AD login extension installed; see FR-016a) plus a
+  storage account whose blob service is exposed via a private endpoint
+  into the validation spoke. Together these exercise both raw
+  private-IP connectivity (`az ssh vm` to the VM, authenticated via
+  Entra) and Azure Private Link DNS auto-registration (resolving the
+  storage private endpoint name from the VPN client).
 - Default address allocation (operator may override in configuration):
   hub `10.0.0.0/22`, VPN client address pool `10.255.0.0/16`, initial
   spoke `10.1.0.0/22`. Each subsequent spoke takes the next available
   `/22` from `10.x.0.0/22` (x ≥ 2).
 - The platform is single-tenant to the operator's Entra tenant; no
   guest-account or cross-tenant access is supported.
+- Spokes target subscriptions by referencing a named "slot"; the
+  slot-to-subscription mapping is supplied at bootstrap time and is
+  the only place subscription identifiers appear in operator-facing
+  configuration. The mechanism behind slots (one provider alias per
+  slot) is an implementation detail of the IaC tool and is documented
+  in `plan.md` / `data-model.md`.
 - Compliance with the project constitution is assumed (in particular:
   OpenTofu as the IaC tool, Azure Verified Modules as the default
   module source, no NVAs, secretless Entra auth).
