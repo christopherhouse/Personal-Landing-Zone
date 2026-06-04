@@ -1,0 +1,23 @@
+# Claude
+/.claude/*
+
+# Terraform / OpenTofu
+**/.terraform/*
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.tofu/
+tofu.tfstate
+tofu.tfstate.backup
+.terraform.tfstate.lock.info
