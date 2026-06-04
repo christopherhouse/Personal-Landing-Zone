@@ -1,0 +1,103 @@
+name: plan
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'specs/**'
+      - '**/*.md'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+  ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+  TOFU_VERSION: "1.10.10"
+  TFLINT_VERSION: "v0.55.1"
+  TRIVY_VERSION: "0.58.2"
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.ARM_CLIENT_ID }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID }}
+
+      - name: tofu init (backend coordinates from repository Variables)
+        run: |
+          tofu init -input=false \
+            -backend-config="subscription_id=${{ vars.TF_STATE_SUBSCRIPTION_ID }}" \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=personal-landing-zone/hub-and-spoke.tfstate"
+
+      - name: tofu fmt -check
+        run: tofu fmt -check -recursive
+
+      - name: tofu validate
+        run: tofu validate
+
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: tflint --init
+        working-directory: ${{ github.workspace }}
+        run: tflint --init
+
+      - name: tflint --recursive
+        working-directory: ${{ github.workspace }}
+        run: tflint --recursive --format=compact
+
+      - name: trivy config
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: config
+          scan-ref: infra/
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: tofu plan
+        run: |
+          tofu plan -out=tfplan -input=false -lock-timeout=5m \
+            -var-file=../bootstrap/outputs/discovered.auto.tfvars.json \
+            -var-file=../config/platform.auto.tfvars \
+            -var-file=../config/spokes.auto.tfvars
+
+      - name: Render plan as text
+        run: tofu show -no-color tfplan > plan.txt
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ github.event.pull_request.number }}
+          path: |
+            infra/tfplan
+            infra/plan.txt
+          if-no-files-found: error
+          retention-days: 14

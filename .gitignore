@@ -3,14 +3,11 @@
 
 # Terraform / OpenTofu
 **/.terraform/*
-**/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
 crash.log
 crash.*.log
-*.tfvars
-*.tfvars.json
 override.tf
 override.tf.json
 *_override.tf
@@ -21,3 +18,16 @@ terraform.rc
 tofu.tfstate
 tofu.tfstate.backup
 .terraform.tfstate.lock.info
+
+# Plan artifacts (binary plans only; *.auto.tfvars are operator configuration
+# and MUST be committed — see config/ and bootstrap/outputs/).
+infra/tfplan
+infra/*.tfplan
+
+# Bootstrap outputs (keep the directory; commit the discovered tfvars.json so
+# the workflow has the bootstrap-emitted values; commit the report so the
+# operator history is reproducible. Anything else is incidental.)
+bootstrap/outputs/*
+!bootstrap/outputs/.gitkeep
+!bootstrap/outputs/discovered.auto.tfvars.json
+!bootstrap/outputs/bootstrap-report.md
