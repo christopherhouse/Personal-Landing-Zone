@@ -20,7 +20,7 @@ env:
   ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
   ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
-  TOFU_VERSION: "1.9.4"
+  TOFU_VERSION: "1.10.10"
   GH_TOKEN: ${{ github.token }}
 
 jobs:
