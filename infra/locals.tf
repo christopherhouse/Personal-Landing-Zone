@@ -82,7 +82,7 @@ locals {
       ) < index(
       [for b in local.primary_allocations_numeric : b.label],
       pair[1].label,
-      ) &&
+    ) &&
     pair[0].start <= pair[1].end &&
     pair[1].start <= pair[0].end
   ]
