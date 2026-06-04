@@ -31,7 +31,7 @@ Single OpenTofu root in `infra/`, three configuration files in `config/`, one bo
 - [x] T002 [P] Create `.tool-versions` pinning `opentofu 1.9.0` (or current 1.9.x) at the repo root
 - [x] T003 [P] Update `.gitignore` at the repo root: REMOVE the line that ignores `**/.terraform.lock.hcl` (lock files must be committed per Constitution Principle V); ADD `bootstrap/outputs/*` with an exception for `bootstrap/outputs/.gitkeep`; ADD `infra/tfplan` and `infra/*.tfplan`
 - [x] T004 [P] Create `.tflint.hcl` at the repo root with `plugin "azurerm"` (source = `terraform-linters/tflint-ruleset-azurerm`, version pinned) enabled and the `terraform_required_providers` + `terraform_required_version` rules turned on
-- [ ] T005 [P] Create `infra/README.md` describing the root-and-three-modules composition with a one-paragraph link map back to `specs/001-hub-spoke-foundation/plan.md`
+- [x] T005 [P] Create `infra/README.md` describing the root-and-three-modules composition with a one-paragraph link map back to `specs/001-hub-spoke-foundation/plan.md`
 
 ---
 
