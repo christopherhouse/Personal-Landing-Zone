@@ -40,12 +40,32 @@ If the apply is still running (initial VPN gateway provisioning takes 30–45 mi
 2. **Point-to-site configuration** → **Download VPN client**.
 3. Unzip the download. Locate `AzureVPN/azurevpnconfig_aad.xml`.
 
-### Step 1.3: Import the profile and connect
+### Step 1.3: Inject the DNS Private Resolver IP into the profile, then import
 
-1. Open the Azure VPN Client.
-2. **Import** → select `azurevpnconfig_aad.xml`.
-3. Select the imported profile → **Connect**.
-4. Sign in with the operator's Entra account when prompted.
+The classic `Microsoft.Network/virtualNetworkGateways` resource cannot persist custom DNS server IPs on the ARM resource — the Azure Portal's "Custom DNS servers" field is only rendered into the downloaded profile XML at generation time. We provision the gateway via OpenTofu, so we set the resolver IP into the profile out-of-band, once per profile download.
+
+1. Get the resolver IP from the apply log or via:
+
+   ```powershell
+   tofu -chdir=infra output -raw resolver_inbound_endpoint_ip
+   ```
+
+2. Open `azurevpnconfig_aad.xml` in a text editor. Inside `<clientconfig>`, add (or replace) the `<dnsservers>` element so it contains a single `<dnsserver>` child with the resolver IP. Example fragment:
+
+   ```xml
+   <clientconfig>
+     <dnsservers>
+       <dnsserver>10.0.3.4</dnsserver>
+     </dnsservers>
+   </clientconfig>
+   ```
+
+3. Open the Azure VPN Client.
+4. **Import** → select the edited `azurevpnconfig_aad.xml`.
+5. Select the imported profile → **Connect**.
+6. Sign in with the operator's Entra account when prompted.
+
+**Note**: Re-do this step every time you re-download the profile (e.g., after adding a spoke causes the routed-prefix list to change).
 
 **Expected**: Connection established within ~10 seconds; no prompt for a pre-shared key or certificate (FR-015).
 

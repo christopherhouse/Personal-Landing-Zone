@@ -25,7 +25,6 @@ provider "azurerm" {
 
   subscription_id     = var.subscription_slots["hub"].subscription_id
   use_oidc            = true
-  use_azuread_auth    = true
   storage_use_azuread = true
 }
 
@@ -35,6 +34,5 @@ provider "azurerm" {
 
   subscription_id     = var.subscription_slots["hub"].subscription_id
   use_oidc            = true
-  use_azuread_auth    = true
   storage_use_azuread = true
 }
