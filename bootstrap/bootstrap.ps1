@@ -339,11 +339,12 @@ function Set-RoleAssignmentIdempotent {
         [string] $Scope,
         [string] $PrincipalId
     )
-    # Existence check by (role, principal, scope).
+    # Existence check by (role, principal, scope). Note: `az role assignment
+    # list` does not accept `--assignee-principal-type` (only `create` does);
+    # `--assignee-object-id` alone is unambiguous.
     $existing = Invoke-Az @(
         'role', 'assignment', 'list',
-        '--assignee-object-id', $PrincipalId,
-        '--assignee-principal-type', 'ServicePrincipal',
+        '--assignee', $PrincipalId,
         '--role', $RoleName,
         '--scope', $Scope
     )

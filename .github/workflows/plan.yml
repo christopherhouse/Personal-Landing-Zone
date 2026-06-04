@@ -83,7 +83,11 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: tofu plan
-        run: tofu plan -out=tfplan -input=false -lock-timeout=5m
+        run: |
+          tofu plan -out=tfplan -input=false -lock-timeout=5m \
+            -var-file=../bootstrap/outputs/discovered.auto.tfvars.json \
+            -var-file=../config/platform.auto.tfvars \
+            -var-file=../config/spokes.auto.tfvars
 
       - name: Render plan as text
         run: tofu show -no-color tfplan > plan.txt

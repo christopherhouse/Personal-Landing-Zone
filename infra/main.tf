@@ -34,7 +34,7 @@ module "hub" {
   }
 
   subscription_id            = var.subscription_slots["hub"].subscription_id
-  tenant_id                  = var.platform.tenant_id
+  tenant_id                  = var.tenant_id
   resource_group_name        = var.platform.hub_resource_group_name
   region                     = var.platform.region
   address_space              = var.platform.hub_address_space
@@ -42,7 +42,7 @@ module "hub" {
   workspace_retention_days   = var.platform.workspace_retention_days
   naming_prefix              = var.platform.naming_prefix
   vpn_client_address_pool    = var.platform.vpn_client_address_pool
-  vpn_access_group_object_id = var.platform.vpn_access_group_object_id
+  vpn_access_group_object_id = var.vpn_access_group_object_id
   tags                       = var.platform.tags
 }
 
@@ -90,7 +90,7 @@ module "validation_workload" {
   target_resource_group_id        = "/subscriptions/${var.subscription_slots[each.value.subscription_slot].subscription_id}/resourceGroups/${module.spoke_hub[each.key].resource_group_name}"
   target_subnet_id                = module.spoke_hub[each.key].workload_subnet_id
   target_private_dns_zone_id_blob = module.hub.private_dns_zone_ids["privatelink.blob.core.windows.net"]
-  vpn_access_group_object_id      = var.platform.vpn_access_group_object_id
+  vpn_access_group_object_id      = var.vpn_access_group_object_id
   region                          = var.platform.region
   naming_prefix                   = var.platform.naming_prefix
   tags                            = var.platform.tags

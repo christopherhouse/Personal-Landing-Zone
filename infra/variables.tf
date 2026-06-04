@@ -12,40 +12,28 @@
 
 variable "platform" {
   description = <<-EOT
-    Singleton platform-level configuration. Sourced from
-    config/platform.auto.tfvars (operator-edited fields) plus
-    bootstrap/outputs/discovered.auto.tfvars.json (vpn_access_group_object_id,
-    tenant_id).
+    Singleton platform-level configuration. Operator-edited fields only;
+    fields the bootstrap script discovers (tenant_id, vpn_access_group_object_id)
+    are top-level variables below, sourced from
+    bootstrap/outputs/discovered.auto.tfvars.json.
   EOT
 
   type = object({
-    tenant_id                  = string
-    hub_subscription_id        = string
-    hub_resource_group_name    = string
-    region                     = optional(string, "eastus2")
-    hub_address_space          = optional(string, "10.0.0.0/22")
-    vpn_client_address_pool    = optional(string, "10.255.0.0/16")
-    dns_zones                  = optional(list(string), ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"])
-    workspace_retention_days   = optional(number, 30)
-    naming_prefix              = optional(string, "plz")
-    github_repo                = string
-    vpn_access_group_object_id = string
-    tags                       = optional(map(string), {})
+    hub_subscription_id      = string
+    hub_resource_group_name  = string
+    region                   = optional(string, "eastus2")
+    hub_address_space        = optional(string, "10.0.0.0/22")
+    vpn_client_address_pool  = optional(string, "10.255.0.0/16")
+    dns_zones                = optional(list(string), ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"])
+    workspace_retention_days = optional(number, 30)
+    naming_prefix            = optional(string, "plz")
+    github_repo              = string
+    tags                     = optional(map(string), {})
   })
-
-  validation {
-    condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.platform.tenant_id))
-    error_message = "platform.tenant_id must be a valid GUID."
-  }
 
   validation {
     condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.platform.hub_subscription_id))
     error_message = "platform.hub_subscription_id must be a valid GUID."
-  }
-
-  validation {
-    condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.platform.vpn_access_group_object_id))
-    error_message = "platform.vpn_access_group_object_id must be a valid GUID (object ID of the sg-plz-vpn-users Entra group). It is normally populated by bootstrap.ps1 via bootstrap/outputs/discovered.auto.tfvars.json."
   }
 
   validation {
@@ -67,6 +55,37 @@ variable "platform" {
     condition     = length(var.platform.dns_zones) > 0
     error_message = "platform.dns_zones must contain at least one zone."
   }
+}
+
+# Bootstrap-discovered top-level variables. These match the flat keys
+# bootstrap/bootstrap.ps1 writes into bootstrap/outputs/discovered.auto.tfvars.json
+# so the file feeds straight in via *.auto.tfvars auto-load — no operator
+# hand-copy required.
+
+variable "tenant_id" {
+  description = "Entra tenant ID. Discovered by bootstrap.ps1."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.tenant_id))
+    error_message = "tenant_id must be a valid GUID."
+  }
+}
+
+variable "vpn_access_group_object_id" {
+  description = "Object ID of the Entra VPN access group (sg-plz-vpn-users by default). Discovered/created by bootstrap.ps1."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.vpn_access_group_object_id))
+    error_message = "vpn_access_group_object_id must be a valid GUID."
+  }
+}
+
+variable "deployment_app_client_id" {
+  description = "Client (application) ID of the deployment Entra app. Emitted by bootstrap.ps1 for operator reference (used to set the ARM_CLIENT_ID repo Variable); not consumed by any module."
+  type        = string
+  default     = null
 }
 
 variable "subscription_slots" {

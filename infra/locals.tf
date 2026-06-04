@@ -74,7 +74,15 @@ locals {
       b      = pair[1].label
       b_cidr = pair[1].cidr
     }
-    if pair[0].label < pair[1].label &&
+    # Dedupe (A,B)/(B,A) and skip (A,A) via lexicographic compare. HCL's `<`
+    # is numeric-only; use strcontains/regex-free compare via index lookup.
+    if index(
+      [for b in local.primary_allocations_numeric : b.label],
+      pair[0].label,
+      ) < index(
+      [for b in local.primary_allocations_numeric : b.label],
+      pair[1].label,
+      ) &&
     pair[0].start <= pair[1].end &&
     pair[1].start <= pair[0].end
   ]
