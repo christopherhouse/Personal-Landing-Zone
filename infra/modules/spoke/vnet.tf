@@ -14,6 +14,13 @@ module "vnet" {
   enable_telemetry = false
   tags             = var.tags
 
+  # Spoke VMs/PaaS get the hub-resolver IP via Azure-provided DHCP. They
+  # resolve `*.privatelink.*` and `plz.internal` through the resolver
+  # without any host-side config.
+  dns_servers = {
+    dns_servers = [var.hub_resolver_ip]
+  }
+
   subnets = {
     workload = {
       name           = local.spoke_workload_subnet_name

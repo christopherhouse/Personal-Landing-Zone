@@ -21,7 +21,8 @@ module "resolver" {
     primary = {
       name                         = "inbound-primary"
       subnet_name                  = local.resolver_subnet_name
-      private_ip_allocation_method = "Dynamic"
+      private_ip_allocation_method = "Static"
+      private_ip_address           = local.resolver_ip
     }
   }
 }
