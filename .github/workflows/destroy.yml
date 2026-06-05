@@ -1,0 +1,78 @@
+name: destroy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+  ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+  TOFU_VERSION: "1.10.10"
+
+jobs:
+  destroy:
+    name: destroy
+    runs-on: ubuntu-latest
+    # NOTE: T055 (Phase 5) calls for `environment: destroy` here so the operator
+    # can configure required-reviewers in the GitHub Environment as an approval
+    # gate. Omitted for the initial bring-up to avoid blocking the first run on
+    # environment configuration; add back before going to long-term steady state.
+    concurrency:
+      group: tofu-apply
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.ARM_CLIENT_ID }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID }}
+
+      - name: tofu init (backend coordinates from repository Variables)
+        run: |
+          tofu init -input=false \
+            -backend-config="subscription_id=${{ vars.TF_STATE_SUBSCRIPTION_ID }}" \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=personal-landing-zone/hub-and-spoke.tfstate"
+
+      - name: tofu plan -destroy
+        run: |
+          tofu plan -destroy -out=destroyplan -input=false -lock-timeout=5m \
+            -var-file=../bootstrap/outputs/discovered.auto.tfvars.json \
+            -var-file=../config/platform.auto.tfvars \
+            -var-file=../config/spokes.auto.tfvars
+
+      - name: Render destroy plan as text
+        run: tofu show -no-color destroyplan > destroyplan.txt
+
+      - name: Upload destroy plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: destroyplan-${{ github.run_id }}
+          path: |
+            infra/destroyplan
+            infra/destroyplan.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: tofu apply destroyplan
+        run: tofu apply -input=false destroyplan
