@@ -6,7 +6,8 @@
 # scoped and lets the operator delete it later (per-spoke) if a particular
 # spoke doesn't need outbound.
 #
-# Sized at the floor: Standard SKU NAT Gateway + one Standard Static PIP.
+# Sized at the floor: Standard SKU NAT Gateway + one Standard Static PIP,
+# zone-redundant (all 3 zones) for cross-AZ availability.
 # Idle cost ~$33/spoke/month. Documented in plan.md constraints.
 
 locals {
