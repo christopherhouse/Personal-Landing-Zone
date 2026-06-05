@@ -8,19 +8,39 @@ locals {
   azure_vpn_client_audience = "41b23e61-6c1e-4545-b367-cd054e0ed4b4"
 }
 
-# T024 — Standard, static public IP for the VPN gateway. Standard SKU required
-# by Azure for VpnGw1+ on RouteBased Vpn gateways.
-module "gateway_pip" {
-  source  = "Azure/avm-res-network-publicipaddress/azurerm"
-  version = "~> 0.2"
-
+# T024 — Standard, static public IP for the VPN gateway.
+#
+# Native azurerm_public_ip rather than the AVM
+# Azure/avm-res-network-publicipaddress module. Reason: Azure auto-populates
+# `ip_tags = { FirstPartyUsage = "/Unprivileged" }` on the resource post-
+# create and the AVM module doesn't expose `ip_tags` as an input or
+# surface `lifecycle.ignore_changes` to the caller. The resulting drift
+# forces a destroy+create on every plan, which would rotate the public IP
+# on every apply, invalidating every downloaded Azure VPN Client profile.
+# `lifecycle.ignore_changes = [ip_tags]` on the native resource fixes it.
+# Constitution escape hatch (c) — same family as the native VPN gateway
+# itself; tracked in plan.md Complexity Tracking.
+resource "azurerm_public_ip" "gateway_pip" {
   name                = local.hub_gateway_pip_name
   location            = var.region
   resource_group_name = module.rg.name
   sku                 = "Standard"
+  sku_tier            = "Regional"
   allocation_method   = "Static"
-  enable_telemetry    = false
+  zones               = ["1", "2", "3"]
   tags                = var.tags
+
+  lifecycle {
+    ignore_changes = [ip_tags]
+  }
+}
+
+# Preserve the existing PIP (and therefore its public IP value) across the
+# AVM→native migration. The existing resource lives at
+# module.gateway_pip.azurerm_public_ip.this in state.
+moved {
+  from = module.gateway_pip.azurerm_public_ip.this
+  to   = azurerm_public_ip.gateway_pip
 }
 
 # T025 — Native azurerm_virtual_network_gateway. The dedicated AVM module for
@@ -45,7 +65,7 @@ resource "azurerm_virtual_network_gateway" "vpn" {
 
   ip_configuration {
     name                          = "gw-ip-config"
-    public_ip_address_id          = module.gateway_pip.resource_id
+    public_ip_address_id          = azurerm_public_ip.gateway_pip.id
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = module.vnet.subnets["gateway"].resource_id
   }
