@@ -5,7 +5,19 @@
 # (research.md R-004; verified against
 # Azure/terraform-azurerm-avm-res-network-virtualnetwork v0.17.1 peering
 # submodule).
+#
+# Ordering: `use_remote_gateways = true` is rejected by Azure with
+# `RemoteVnetHasNoGateways` if the hub VPN gateway hasn't reached
+# Succeeded. Tofu's natural dependency graph only sees the hub VNet ID,
+# so we add an explicit wait through `wait_for_hub_gateway` keyed on the
+# gateway resource ID.
+resource "terraform_data" "wait_for_hub_gateway" {
+  input = var.hub_vpn_gateway_id
+}
+
 module "peering" {
+  depends_on = [terraform_data.wait_for_hub_gateway]
+
   source  = "Azure/avm-res-network-virtualnetwork/azurerm//modules/peering"
   version = "~> 0.17"
 

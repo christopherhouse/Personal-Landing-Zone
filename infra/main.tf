@@ -67,6 +67,7 @@ module "spoke_hub" {
   workload_subnet_prefix       = each.value.workload_subnet_prefix
   naming_prefix                = var.platform.naming_prefix
   hub_vnet_id                  = module.hub.vnet_id
+  hub_vpn_gateway_id           = module.hub.vpn_gateway_id
   hub_vnet_resource_group_name = module.hub.private_dns_zone_resource_group_name
   hub_private_dns_zone_ids     = module.hub.private_dns_zone_ids
   vpn_client_address_pool      = var.platform.vpn_client_address_pool

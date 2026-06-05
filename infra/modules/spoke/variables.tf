@@ -35,6 +35,11 @@ variable "hub_vnet_id" {
   type        = string
 }
 
+variable "hub_vpn_gateway_id" {
+  description = "Full ARM ID of the hub's VPN gateway. The spoke peering uses `use_remote_gateways = true` which Azure rejects with `RemoteVnetHasNoGateways` if the gateway hasn't reached Succeeded; we depend on this ID through a terraform_data resource to force the right ordering."
+  type        = string
+}
+
 variable "hub_vnet_resource_group_name" {
   description = "Hub VNet's resource group name. Surfaced so the spoke module can resolve cross-sub provider routing for DNS zone links."
   type        = string

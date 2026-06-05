@@ -48,17 +48,12 @@ resource "azurerm_monitor_diagnostic_setting" "vpn_gateway" {
   }
 }
 
-# Note: Azure rejects diagnostic settings on the child
-# `Microsoft.Network/dnsResolvers/inboundEndpoints` resource type
-# ("ResourceTypeNotSupported"). They attach to the parent dnsResolvers
-# resource. Categories available on the parent are limited; using the
-# generic "allLogs" group + AllMetrics covers what is currently exposed.
-resource "azurerm_monitor_diagnostic_setting" "resolver" {
-  name                       = "diag-${local.hub_dns_resolver_name}"
-  target_resource_id         = module.resolver.resource_id
-  log_analytics_workspace_id = module.workspace.resource_id
-
-  enabled_metric {
-    category = "AllMetrics"
-  }
-}
+# NOTE: T029 also called for diagnostic settings on the DNS Private Resolver,
+# but Azure rejects diagnostic settings on BOTH
+# `Microsoft.Network/dnsResolvers/inboundEndpoints` (child) and
+# `Microsoft.Network/dnsResolvers` (parent), with
+# `ResourceTypeNotSupported`. Azure simply does not expose a diagnostic
+# settings surface on DNS Private Resolver at this time. The spec
+# requirement is unsatisfiable on the platform; the resolver runs without
+# central log routing. Re-evaluate when Azure publishes resolver diag
+# categories (no public timeline as of 2026-06).
