@@ -23,6 +23,8 @@ tofu.tfstate.backup
 # and MUST be committed — see config/ and bootstrap/outputs/).
 infra/tfplan
 infra/*.tfplan
+infra/tfplan.*
+infra/*.tfplan.*
 
 # Bootstrap outputs (keep the directory; commit the discovered tfvars.json so
 # the workflow has the bootstrap-emitted values; commit the report so the
