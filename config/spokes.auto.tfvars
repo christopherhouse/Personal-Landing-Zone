@@ -10,8 +10,8 @@ spokes = {
   validation = {
     subscription_slot           = "hub"
     resource_group_name         = "rg-plz-spoke-validation-eastus2"
-    address_space               = "10.1.0.0/22"
-    workload_subnet_prefix      = "10.1.0.0/24"
+    address_space               = "172.16.4.0/22"
+    workload_subnet_prefix      = "172.16.4.0/24"
     include_validation_workload = true
   }
 }

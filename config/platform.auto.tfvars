@@ -14,8 +14,8 @@ platform = {
   github_repo             = "christopherhouse/Personal-Landing-Zone"
   hub_resource_group_name = "rg-plz-hub-eastus2"
   region                  = "eastus2"
-  hub_address_space       = "10.0.0.0/22"
-  vpn_client_address_pool = "10.255.0.0/16"
+  hub_address_space       = "172.16.0.0/22"
+  vpn_client_address_pool = "172.17.0.0/16"
   dns_zones = [
     "privatelink.blob.core.windows.net",
     "privatelink.vaultcore.azure.net",

@@ -50,15 +50,27 @@ The classic `Microsoft.Network/virtualNetworkGateways` resource cannot persist c
    tofu -chdir=infra output -raw resolver_inbound_endpoint_ip
    ```
 
-2. Open `azurevpnconfig_aad.xml` in a text editor. Inside `<clientconfig>`, add (or replace) the `<dnsservers>` element so it contains a single `<dnsserver>` child with the resolver IP. Example fragment:
+2. Open `azurevpnconfig_aad.xml` in a text editor. Inside `<clientconfig>`, add BOTH `<dnsservers>` (with the resolver IP from Step 1) AND `<includedroutes>` (with every hub + spoke VNet prefix). Azure does not auto-populate either of these on classic VNet-attached P2S gateways — the ARM resource has no `customDnsServers` and no `customRoutes` to derive them from, so the downloaded XML omits both. Example for the Phase 3 MVP (hub `172.16.0.0/22` + validation spoke `172.16.4.0/22`):
 
    ```xml
    <clientconfig>
      <dnsservers>
-       <dnsserver>10.0.3.4</dnsserver>
+       <dnsserver>172.16.3.36</dnsserver>
      </dnsservers>
+     <includedroutes>
+       <route>
+         <destination>172.16.0.0</destination>
+         <mask>22</mask>
+       </route>
+       <route>
+         <destination>172.16.4.0</destination>
+         <mask>22</mask>
+       </route>
+     </includedroutes>
    </clientconfig>
    ```
+
+   Add one `<route>` per spoke whenever you add a spoke. The VPN client address pool (`172.17.0.0/16` by default) does NOT need to be listed — the client routes it locally to the VPN adapter. The platform uses `172.16.0.0/12` rather than `10.0.0.0/8` to minimize collisions with home/corporate LANs in the 10.x.x.x range.
 
 3. Open the Azure VPN Client.
 4. **Import** → select the edited `azurevpnconfig_aad.xml`.

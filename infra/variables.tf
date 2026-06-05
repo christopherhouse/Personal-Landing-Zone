@@ -22,8 +22,8 @@ variable "platform" {
     hub_subscription_id      = string
     hub_resource_group_name  = string
     region                   = optional(string, "eastus2")
-    hub_address_space        = optional(string, "10.0.0.0/22")
-    vpn_client_address_pool  = optional(string, "10.255.0.0/16")
+    hub_address_space        = optional(string, "172.16.0.0/22")
+    vpn_client_address_pool  = optional(string, "172.17.0.0/16")
     dns_zones                = optional(list(string), ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net", "plz.internal"])
     workspace_retention_days = optional(number, 30)
     naming_prefix            = optional(string, "plz")
@@ -43,12 +43,12 @@ variable "platform" {
 
   validation {
     condition     = can(cidrnetmask(var.platform.hub_address_space))
-    error_message = "platform.hub_address_space must be a valid CIDR (e.g., 10.0.0.0/22)."
+    error_message = "platform.hub_address_space must be a valid CIDR (e.g., 172.16.0.0/22)."
   }
 
   validation {
     condition     = can(cidrnetmask(var.platform.vpn_client_address_pool))
-    error_message = "platform.vpn_client_address_pool must be a valid CIDR (e.g., 10.255.0.0/16)."
+    error_message = "platform.vpn_client_address_pool must be a valid CIDR (e.g., 172.17.0.0/16)."
   }
 
   validation {
@@ -165,7 +165,7 @@ variable "spokes" {
       for _, v in var.spokes :
       can(cidrnetmask(v.address_space))
     ])
-    error_message = "Each spoke.address_space must be a valid CIDR (e.g., 10.1.0.0/22)."
+    error_message = "Each spoke.address_space must be a valid CIDR (e.g., 172.16.4.0/22)."
   }
 
   validation {
@@ -173,6 +173,6 @@ variable "spokes" {
       for _, v in var.spokes :
       can(cidrnetmask(v.workload_subnet_prefix))
     ])
-    error_message = "Each spoke.workload_subnet_prefix must be a valid CIDR (e.g., 10.1.0.0/24)."
+    error_message = "Each spoke.workload_subnet_prefix must be a valid CIDR (e.g., 172.16.4.0/24)."
   }
 }
