@@ -91,7 +91,7 @@ The Complexity Tracking entry in `plan.md` records this as the single declared e
 **Decision**: Native `azurerm_virtual_network_gateway` with:
 
 - `type = "Vpn"`, `vpn_type = "RouteBased"`
-- `sku = "VpnGw1"` (minimum SKU compatible with OpenVPN tunnel and Entra auth)
+- `sku = "VpnGw2"` (smallest SKU still accepted by `azurerm` 4.x — see "Update 2026-06" below)
 - `vpn_client_configuration`:
   - `address_space = [var.vpn_client_address_pool]` (default `10.255.0.0/16`)
   - `vpn_client_protocols = ["OpenVPN"]`
@@ -110,8 +110,11 @@ The Complexity Tracking entry in `plan.md` records this as the single declared e
 **Alternatives considered**:
 
 - *Basic SKU* — does not support OpenVPN; ruled out.
-- *VpnGw1AZ* (zone-redundant variant) — ~30% more expensive for zone redundancy that has no value in a personal lab. Rejected per Principle II.
+- *VpnGw1* — original choice, retired from azurerm 4.x's accepted-SKU validation list. The first apply attempt failed with `expected sku to be one of ["VpnGw2" "VpnGw3" "VpnGw4" "VpnGw5" ...], got VpnGw1`.
+- *VpnGw2AZ* (zone-redundant variant) — ~25% more expensive for zone redundancy that has no value in a personal lab. Rejected per Principle II.
 - *Manually-registered Azure VPN Client app* (audience values from the `openvpn-azure-ad-tenant` doc) — works on Windows/macOS but not on Linux Azure VPN client; rejected for forward compatibility.
+
+**Update 2026-06**: Originally pinned to VpnGw1 as the minimum non-Basic SKU. azurerm 4.x rejects VpnGw1 at provider-validation time; only VpnGw2+ (and their AZ variants) pass. Bumped to VpnGw2. Cost ceiling in `plan.md` raised from $350 to $400/month idle to absorb the ~$71/month delta (VpnGw1 ≈ $140 → VpnGw2 ≈ $211).
 
 ---
 
