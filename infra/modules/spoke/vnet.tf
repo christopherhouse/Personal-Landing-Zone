@@ -21,6 +21,9 @@ module "vnet" {
       network_security_group = {
         id = module.nsg.resource_id
       }
+      nat_gateway = {
+        id = azurerm_nat_gateway.this.id
+      }
     }
   }
 }
