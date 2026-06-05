@@ -3,17 +3,25 @@ locals {
 }
 
 # T028 — Log Analytics workspace ("platform diagnostic sink").
+#
+# Public network access enabled for both ingestion and query so the operator
+# can query the workspace from anywhere (Azure portal, Kusto Explorer, etc.)
+# without the VPN. Workspace data-plane auth is still Entra-only; "public
+# access" means the workspace endpoints are reachable from the internet,
+# not that anyone unauthenticated can read data.
 module "workspace" {
   source  = "Azure/avm-res-operationalinsights-workspace/azurerm"
   version = "~> 0.5"
 
-  name                                      = local.hub_workspace_name
-  location                                  = var.region
-  resource_group_name                       = module.rg.name
-  log_analytics_workspace_sku               = "PerGB2018"
-  log_analytics_workspace_retention_in_days = var.workspace_retention_days
-  enable_telemetry                          = false
-  tags                                      = var.tags
+  name                                               = local.hub_workspace_name
+  location                                           = var.region
+  resource_group_name                                = module.rg.name
+  log_analytics_workspace_sku                        = "PerGB2018"
+  log_analytics_workspace_retention_in_days          = var.workspace_retention_days
+  log_analytics_workspace_internet_ingestion_enabled = true
+  log_analytics_workspace_internet_query_enabled     = true
+  enable_telemetry                                   = false
+  tags                                               = var.tags
 }
 
 # T029 — Diagnostic settings for the VPN gateway and DNS Private Resolver
