@@ -40,6 +40,11 @@ variable "hub_vpn_gateway_id" {
   type        = string
 }
 
+variable "hub_resolver_ip" {
+  description = "Private IP of the DNS Private Resolver inbound endpoint in the hub VNet. Set as the spoke VNet's DNS server so every VM/PaaS in the spoke gets it via Azure-provided DHCP."
+  type        = string
+}
+
 variable "hub_vnet_resource_group_name" {
   description = "Hub VNet's resource group name. Surfaced so the spoke module can resolve cross-sub provider routing for DNS zone links."
   type        = string

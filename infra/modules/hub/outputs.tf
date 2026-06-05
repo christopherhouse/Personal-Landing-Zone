@@ -24,8 +24,8 @@ output "vpn_gateway_name" {
 }
 
 output "resolver_inbound_endpoint_ip" {
-  description = "Private IP of the DNS Private Resolver inbound endpoint. Pushed to VPN clients via the gateway's vpn_client_configuration.additional_dns_servers."
-  value       = module.resolver.inbound_endpoint_ips["primary"]
+  description = "Private IP of the DNS Private Resolver inbound endpoint. Pinned to a Static value so spoke VNets can hardcode it as their dns_servers without depending on the resolver resource."
+  value       = local.resolver_ip
 }
 
 output "private_dns_zone_ids" {
