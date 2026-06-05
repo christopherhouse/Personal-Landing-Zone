@@ -55,7 +55,7 @@ Deploy a persistent Azure hub-and-spoke virtual network that supplies P2S VPN ac
 - All provider and module versions pinned with `~>` constraints in `versions.tf`; module sources include explicit version tags.
 - No long-lived secrets anywhere — repo, state, pipeline, or VPN profile (FR-013, FR-014, FR-015, FR-016a).
 - No manual portal/CLI changes against the platform once it is deployed (FR-018).
-- Steady-state idle hub cost target: ≤ $400/month at the chosen minimum SKUs (VpnGw2 ≈ $211 — VpnGw1 was retired from `azurerm` 4.x's accepted SKU list, see research.md R-005; DNS Private Resolver inbound endpoint ≈ $130; Log Analytics workspace + validation VM + storage PE ≈ $25–$50). Recorded in `docs/cost-baseline.md` and reviewed on every PR that adds an always-on resource (SC-007).
+- Steady-state idle hub cost target: ≤ $450/month at the chosen minimum SKUs (VpnGw2AZ ≈ $268 — Azure now rejects all non-AZ VPN SKUs at create time with `NonAzSkusNotAllowedForVPNGateway`; see research.md R-005; DNS Private Resolver inbound endpoint ≈ $130; Log Analytics workspace + validation VM + storage PE ≈ $25–$50). Constitution Principle II's "minimum SKU" intent is honored within the constraints Azure exposes — VpnGw2AZ is the floor, not a choice. Recorded in `docs/cost-baseline.md` and reviewed on every PR that adds an always-on resource (SC-007).
 
 **Scale/Scope**:
 

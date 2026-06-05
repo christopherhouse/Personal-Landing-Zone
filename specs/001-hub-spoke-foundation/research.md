@@ -91,7 +91,7 @@ The Complexity Tracking entry in `plan.md` records this as the single declared e
 **Decision**: Native `azurerm_virtual_network_gateway` with:
 
 - `type = "Vpn"`, `vpn_type = "RouteBased"`
-- `sku = "VpnGw2"` (smallest SKU still accepted by `azurerm` 4.x — see "Update 2026-06" below)
+- `sku = "VpnGw2AZ"` (smallest SKU Azure still accepts at create time — see "Update 2026-06" below)
 - `vpn_client_configuration`:
   - `address_space = [var.vpn_client_address_pool]` (default `10.255.0.0/16`)
   - `vpn_client_protocols = ["OpenVPN"]`
@@ -111,10 +111,16 @@ The Complexity Tracking entry in `plan.md` records this as the single declared e
 
 - *Basic SKU* — does not support OpenVPN; ruled out.
 - *VpnGw1* — original choice, retired from azurerm 4.x's accepted-SKU validation list. The first apply attempt failed with `expected sku to be one of ["VpnGw2" "VpnGw3" "VpnGw4" "VpnGw5" ...], got VpnGw1`.
-- *VpnGw2AZ* (zone-redundant variant) — ~25% more expensive for zone redundancy that has no value in a personal lab. Rejected per Principle II.
+- *VpnGw2 (non-AZ)* — second attempt. Passed provider validation but Azure itself rejected the create with `NonAzSkusNotAllowedForVPNGateway: VpnGw1-5 non-AZ SKUs are no longer supported for VPN gateways. Only VpnGw1-5AZ SKUs can be created going forward.`
 - *Manually-registered Azure VPN Client app* (audience values from the `openvpn-azure-ad-tenant` doc) — works on Windows/macOS but not on Linux Azure VPN client; rejected for forward compatibility.
 
-**Update 2026-06**: Originally pinned to VpnGw1 as the minimum non-Basic SKU. azurerm 4.x rejects VpnGw1 at provider-validation time; only VpnGw2+ (and their AZ variants) pass. Bumped to VpnGw2. Cost ceiling in `plan.md` raised from $350 to $400/month idle to absorb the ~$71/month delta (VpnGw1 ≈ $140 → VpnGw2 ≈ $211).
+**Update 2026-06**: Pinning landed on **VpnGw2AZ** after two attempts:
+
+1. VpnGw1 — rejected at provider-validation time (azurerm 4.x removed it from accepted SKUs).
+2. VpnGw2 — passed the provider but rejected at Azure-API time with `NonAzSkusNotAllowedForVPNGateway`. Azure has consolidated VPN gateway SKUs: non-AZ variants are no longer creatable. See https://learn.microsoft.com/azure/vpn-gateway/gateway-sku-consolidation .
+3. VpnGw2AZ — accepted. Cost ceiling in `plan.md` raised twice: $350 → $400 → $450/month idle to absorb the total delta (VpnGw1 ≈ $140 → VpnGw2AZ ≈ $268, +$128/month).
+
+Principle II's "minimum SKU" intent is honored within Azure's constraints — VpnGw2AZ is the floor, not a choice.
 
 ---
 

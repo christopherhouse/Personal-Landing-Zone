@@ -48,14 +48,15 @@ resource "azurerm_monitor_diagnostic_setting" "vpn_gateway" {
   }
 }
 
-resource "azurerm_monitor_diagnostic_setting" "resolver_inbound" {
-  name                       = "diag-${local.hub_dns_resolver_name}-inbound"
-  target_resource_id         = module.resolver.inbound_endpoints["primary"].id
+# Note: Azure rejects diagnostic settings on the child
+# `Microsoft.Network/dnsResolvers/inboundEndpoints` resource type
+# ("ResourceTypeNotSupported"). They attach to the parent dnsResolvers
+# resource. Categories available on the parent are limited; using the
+# generic "allLogs" group + AllMetrics covers what is currently exposed.
+resource "azurerm_monitor_diagnostic_setting" "resolver" {
+  name                       = "diag-${local.hub_dns_resolver_name}"
+  target_resource_id         = module.resolver.resource_id
   log_analytics_workspace_id = module.workspace.resource_id
-
-  enabled_log {
-    category_group = "allLogs"
-  }
 
   enabled_metric {
     category = "AllMetrics"
