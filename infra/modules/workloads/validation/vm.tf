@@ -72,6 +72,13 @@ module "vm" {
     }
   }
 
+  # Note: the extension installer runs apt-get + downloads from
+  # packages.microsoft.com on first boot. Requires the spoke to have
+  # outbound internet (provided by the per-spoke NAT Gateway in
+  # spoke/nat.tf). If install fails (e.g., NAT misconfig), the extension
+  # record may persist as Failed in Azure even when Tofu doesn't have it
+  # in state; delete via `az vm extension delete --name AADSSHLoginForLinux`
+  # before rerunning.
   extensions = {
     aad_ssh = {
       name                       = "AADSSHLoginForLinux"
