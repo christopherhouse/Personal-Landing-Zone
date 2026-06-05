@@ -45,6 +45,13 @@ module "vm" {
     system_assigned = true
   }
 
+  # The AVM module defaults encryption_at_host_enabled = true. Azure rejects
+  # that unless the `Microsoft.Compute/EncryptionAtHost` feature is registered
+  # on the target subscription. It IS registered on this sub now, but feature
+  # propagation lags; setting false explicitly keeps the validation VM
+  # provisionable on any sub without the one-time feature opt-in.
+  encryption_at_host_enabled = false
+
   os_disk = {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
